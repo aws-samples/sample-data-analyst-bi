@@ -1,0 +1,27 @@
+# Use the official Python runtime as the base image
+FROM public.ecr.aws/lambda/python:3.10
+# Set the working directory in the container
+WORKDIR /app
+# Install required system utilities
+RUN yum update -y && \
+    yum install -y zip findutils && \
+    yum clean all
+# Copy the requirements file
+COPY data-analyst-requirements.txt ./requirements.txt
+# Install dependencies using pip with the correct platform and python version
+RUN pip install --upgrade pip && \
+    pip install \
+      --platform manylinux2014_x86_64 \
+      --target /opt/python/lib/python3.10/site-packages \
+      --implementation cp \
+      --python-version 3.10 \
+      --no-cache-dir \
+      --only-binary=:all: --upgrade \
+      -r requirements.txt
+# Clean up unnecessary files
+RUN find /opt/python/lib/python3.10/site-packages -type d -name "__pycache__" -exec rm -rf {} + && \
+    find /opt/python/lib/python3.10/site-packages -type d -name "tests" -exec rm -rf {} + && \
+    find /opt/python/lib/python3.10/site-packages -type d -name "test" -exec rm -rf {} + && \
+    find /opt/python/lib/python3.10/site-packages -type f -name "*.pyc" -delete
+# Set the entrypoint to create the zip file in the mounted volume
+ENTRYPOINT ["/bin/bash", "-c", "cd /opt && zip -r9 /app/data-analyst-custom-layer.zip python"]

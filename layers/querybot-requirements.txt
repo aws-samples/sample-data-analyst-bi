@@ -1,0 +1,6 @@
+numpy==2.2.2
+pandas==2.2.3
+SQLAlchemy==2.0.28
+psycopg2-binary==2.9.9
+openpyxl==3.1.5
+s3fs==2025.5.1
