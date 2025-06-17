@@ -1,0 +1,13 @@
+SQLite:
+  database_type: 'SQLite'
+  db_conn_conf:
+    db_file_path: "../data/college_2.sqlite"
+  db_schema_file: "../data/db_schema.txt"
+
+PostgreSQL:
+  database_type: "PostgreSQL"
+  db_conn_conf:
+    database: "postgres"
+    host: "database-1-instance-1.cxbrwvukmpr4.us-east-1.rds.amazonaws.com"
+    port: "5432"
+  db_schema_file: "../data/db_schema.txt"

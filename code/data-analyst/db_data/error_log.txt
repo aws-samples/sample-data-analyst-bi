@@ -1,0 +1,28 @@
+Time of error:2024-11-11 18:59:19.022626, Error message: Parameter validation failed:
+Invalid type for parameter messages, value: why does the sales increase from week 13 to week 14 suddenly for store 10 in 2012, type: <class 'str'>, valid types: <class 'list'>, <class 'tuple'>, Source Module: BedrockTextGenerator
+Time of error:2024-11-11 19:32:00.370860, Error message: Parameter validation failed:
+Invalid type for parameter messages[0].content, value: why does the sales increase from week 13 to week 14 suddenly for store 10 in 2012, type: <class 'str'>, valid types: <class 'list'>, <class 'tuple'>, Source Module: BedrockTextGenerator
+Time of error:2024-11-11 19:42:49.778866, Error message: Parameter validation failed:
+Invalid type for parameter messages[0].content, value: why does the sales increase from week 13 to week 14 suddenly for store 10 in 2012, type: <class 'str'>, valid types: <class 'list'>, <class 'tuple'>, Source Module: BedrockTextGenerator
+Time of error:2024-11-11 19:54:03.742679, Error message: Parameter validation failed:
+Invalid type for parameter messages[0].content, value: why does the sales increase from week 13 to week 14 suddenly for store 10 in 2012, type: <class 'str'>, valid types: <class 'list'>, <class 'tuple'>, Source Module: BedrockTextGenerator
+Time of error:2024-11-11 19:57:55.836667, Error message: Parameter validation failed:
+Invalid number of parameters set for tagged union structure messages[0].content[0]. Can only set one of the following keys: text, image, document, toolUse, toolResult, guardContent.
+Unknown parameter in messages[0].content[0]: "type", must be one of: text, image, document, toolUse, toolResult, guardContent, Source Module: BedrockTextGenerator
+Time of error:2024-11-11 20:09:33.844719, Error message: An error occurred (ServiceUnavailableException) when calling the Converse operation (reached max retries: 4): Bedrock is unable to process your request., Source Module: BedrockTextGenerator
+Time of error:2024-11-11 20:27:39.758825, Error message: An error occurred (ServiceUnavailableException) when calling the Converse operation (reached max retries: 4): Bedrock is unable to process your request., Source Module: BedrockTextGenerator
+Time of error:2024-11-11 20:27:50.672503, Error message: An error occurred (ServiceUnavailableException) when calling the Converse operation (reached max retries: 4): Bedrock is unable to process your request., Source Module: BedrockTextGenerator
+Time of error:2024-11-11 20:28:02.695537, Error message: An error occurred (ServiceUnavailableException) when calling the Converse operation (reached max retries: 4): Bedrock is unable to process your request., Source Module: BedrockTextGenerator
+Time of error:2024-11-11 20:28:12.839627, Error message: An error occurred (ServiceUnavailableException) when calling the Converse operation (reached max retries: 4): Bedrock is unable to process your request., Source Module: BedrockTextGenerator
+Time of error:2024-11-11 20:28:19.143997, Error message: An error occurred (ServiceUnavailableException) when calling the Converse operation (reached max retries: 4): Bedrock is unable to process your request., Source Module: BedrockTextGenerator
+Time of error:2024-11-11 20:28:41.858530, Error message: An error occurred (ServiceUnavailableException) when calling the Converse operation (reached max retries: 4): Bedrock is unable to process your request., Source Module: BedrockTextGenerator
+Time of error:2024-11-12 04:39:08.955286, Error message: Parameter validation failed:
+Invalid type for parameter messages[0].content[0].text, value: [{'role': 'user', 'content': [{'text': 'why does the sales increase from week 13 to week 14 suddenly for store 10 in 2012'}]}], type: <class 'list'>, valid types: <class 'str'>, Source Module: BedrockTextGenerator
+Time of error:2024-11-12 04:39:52.601902, Error message: Parameter validation failed:
+Invalid type for parameter messages[0].content[0].text, value: [{'role': 'user', 'content': [{'text': 'why does the sales increase from week 13 to week 14 suddenly for store 10 in 2012'}]}], type: <class 'list'>, valid types: <class 'str'>, Source Module: BedrockTextGenerator
+Time of error:2024-11-12 12:36:28.959701, Error message: Parameter validation failed:
+Invalid type for parameter messages[0].content[0].text, value: [{'role': 'user', 'content': [{'text': 'I need some help'}]}], type: <class 'list'>, valid types: <class 'str'>, Source Module: BedrockTextGenerator
+Time of error:2024-11-12 12:36:28.965509, Error message: Parameter validation failed:
+Invalid type for parameter messages[0].content[0].text, value: [{'role': 'user', 'content': [{'text': 'why does the sales increase from week 13 to week 14 suddenly for store 10 in 2012'}]}], type: <class 'list'>, valid types: <class 'str'>, Source Module: BedrockTextGenerator
+Time of error:2024-11-13 10:57:13.715502, Error message: , Source Module: DbDataRetrievalBedrock
+Time of error:2024-11-13 11:17:32.610345, Error message: , Source Module: DbDataRetrievalBedrock

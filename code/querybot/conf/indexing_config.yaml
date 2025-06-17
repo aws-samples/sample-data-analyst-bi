@@ -1,0 +1,9 @@
+OpenSearch Config:
+  aoss_access_policy_name: "aoss-txt2sql-icl-ap"
+  aoss_encryption_policy_name: "aoss-txt2sql-icl-sp"
+  aoss_network_policy_name: "aoss-txt2sql-icl-np"
+  aoss_vector_store_name: "aoss-txt2sql-01"
+  aoss_index_name: "txt2sql-idx"
+  data_location: "../data/college_2_train.csv"
+  indexing_column: "question"
+  host_url_export_file: "../data/aoss_host.yaml"

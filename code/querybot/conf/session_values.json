@@ -1,0 +1,33 @@
+{
+    "aws_region": "us-east-1",
+    "connect_timeout": 120,
+    "read_timeout": 120,
+    "max_attempts": 3,
+    "default_model_parameters": {
+        "temperature": 0.0,
+        "top_p": 0.95,
+        "top_k": 10,
+        "max_tokens_to_sample": 200
+    },
+    "model_ids": [
+        "zs-anthropic.claude-v2:1",
+        "zs-anthropic.claude-instant-v1",
+        "zs-anthropic.claude-3-sonnet-20240229-v1:0",
+        "zs-anthropic.claude-3-haiku-20240307-v1:0",
+        "icl-anthropic.claude-v2:1",
+        "icl-anthropic.claude-instant-v1",
+        "icl-anthropic.claude-3-sonnet-20240229-v1:0",
+        "icl-anthropic.claude-3-haiku-20240307-v1:0",
+        "zs-pretrained-sqlcoder-v1",
+        "zs-finetuned-codellama-v1"
+    ],
+    "database_options": [
+        "SQLite",
+        "PostgreSQL"
+    ],
+    "db_conf": "../conf/db_config.yaml",
+    "aoss_host": "../data/aoss_host.yaml",
+    "fewshot_count": 3,
+    "zs-pretrained-sqlcoder-v1": "../data/hf_sm_endpoint.txt",
+    "zs-finetuned-codellama-v1": "../data/hf_sm_endpoint.txt"
+}

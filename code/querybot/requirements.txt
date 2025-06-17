@@ -1,0 +1,16 @@
+# sagemaker==2.208.0
+# datasets==2.14.7
+# peft==0.8.2
+# transformers==4.34.1
+boto3>=1.28.57
+botocore>=1.31.57
+pandas
+# opensearch-py==2.4.2
+# langchain_community==0.0.25
+# streamlit==1.31.1
+SQLAlchemy==2.0.28
+psycopg2-binary==2.9.9
+# yapf==0.31.0
+# flake8==3.9.2
+# pre-commit==3.3.3
+# s3fs

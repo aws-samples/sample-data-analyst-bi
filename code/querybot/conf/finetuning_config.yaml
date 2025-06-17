@@ -1,0 +1,31 @@
+SageMaker Training Config:
+  entry_point: 'finetuner.py'       # train script
+  source_dir: 'train'               # directory which includes all the files needed for training
+  dependencies:
+    - 'train/requirements.txt'      # dependencies to be installed in the sagemaker training instance during finetuning
+  instance_type: 'ml.g5.12xlarge'   # instances type used for the training job
+  instance_count: 1                 # the number of instances used for training=
+  volume_size: 300                  # the size of the EBS volume in GB
+  transformers_version: '4.28'      # the transformers version used in the training job
+  pytorch_version: '2.0'            # the pytorch_version version used in the training job
+  py_version: 'py310'               # the python version used in the training job
+  environment:
+    TRANSFORMERS_CACHE: '/tmp/.cache'  # set env variable to cache models in /tmp
+  model_id: "codellama/CodeLlama-7b-Instruct-hf" # HF model to be finetuned
+  database_name: "SQLite" # Databse type containing the schema and data
+  training_data_file: "../data/college_2_train.csv" # CSV file containing the raw training data
+  training_s3_loc: "s3://td-gai-2023/spider/train/" # S3 location to upload the processed training data
+  val_s3_loc: "s3://td-gai-2023/spider/train/" # S3 location to upload the processed validation data
+  model_destination_path: "s3://td-gai-2023/codellama/finetuned/finetuned_model.tar.gz" # Target location of the finetuned model archive
+
+
+Training Hyperparameters:
+  model_id: "codellama/CodeLlama-7b-Instruct-hf"
+  train_ds_path: '/opt/ml/input/data/training/'
+  val_ds_path: '/opt/ml/input/data/val/'
+  train_kbit: False
+  max_steps: 40
+  batch_size: 32
+  per_device_train_batch_size: 4
+  lr: 0.0003
+  merge_weights: True

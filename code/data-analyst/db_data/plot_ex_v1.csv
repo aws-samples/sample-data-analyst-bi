@@ -1,0 +1,180 @@
+nlq,explanation,answer
+show the  bar charts for the sales of store 20,"<sample_data>
+{'Week': [10], 'Weekly_Sales': [1917483.1]}
+</sample_data>
+
+The question asks to plot bar charts for sales for store number 20.  From the <sample_data></sample_data> tag, the relevant columns are 'Week', 'Weekly_Sales'.The data is filtered for all the entities. So the data is not required to be filtered","def plot_grouped_bar(file1):
+    #file1 :  'sql_db_out.csv'
+    # No filters on the data are required
+   ## Import all the libraries inside the function definition
+     import pandas as pd
+     import numpy as np
+     import os
+     import matplotlib.pyplot as plt
+
+     file_path = '/home/ec2-user/SageMaker/data_analyst/db_data'
+    
+    ##Step0: load the files
+     df = pd.read_csv(os.path.join(file_path, file1)
+    ## As the data is already filtered for Store 10 and the given timeperiod, further filtering is not required. So create the plot
+     ax.bar(df['Week'], df['Weekly_Sales'])
+     ax.set_xlabel('Week')
+     ax.set_ylabel('Weekly Sales')
+     ax.set_title('Sales for Store 10')
+     ax.set_xticks(df['Week'])
+     ax.set_xticklabels(df['Week'], rotation=90)
+     ax.legend()
+     return fig
+
+## Set the file names to pass to the function:
+file1 = 'sql_db_out.csv'
+
+## Call the function with the relevant report file names to get the results
+plot_out = plot_grouped_bar(file1)
+"
+show the  bar charts for the sales of store 20 and store 10 in the last 5 weeks,"
+<sample_data>
+{'Store':[20], 'Week': [10], 'Weekly_Sales': [1917483.1]}
+</sample_data>
+The question asks to plot timeseries charts for sales for store:10 and store:20 in the last 5 weeks
+From the sample given inside <sample_data></sample_data> tag, the relevant columns are 'Store', 'Week', 'Weekly_Sales'. .The data is filtered for all the entities. So the data is not required to be filtered","def plot_sales(data_path):
+   # No filters on the data are required 
+   #Import all the libraries inside function definition
+    import pandas as pd
+    import numpy as np
+    import os
+    import matplotlib.pyplot as plt
+    # Load data
+    df = pd.read_csv(data_path)
+    # If no data, return empty plot
+    if df.empty:
+        fig, ax = plt.subplots()
+        return fig
+    
+    # Create bar plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+    df = df.groupby(['Store', 'Week'])['Weekly_Sales'].sum().reset_index()
+    df = df.pivot(index='Week', columns='Store', values='Weekly_Sales')
+    df.plot(kind='bar', ax=ax, width=0.8)
+    
+    # Rotate x-tick labels
+    plt.xticks(rotation=90)
+    
+    # Add labels and title
+    ax.set_xlabel('Week')
+    ax.set_ylabel('Weekly Sales')
+    ax.set_title('Weekly Sales for Stores 10 and 12 (Weeks 10-15, 2012)')
+    ax.legend(title = 'Store')
+    
+    return fig
+
+# Assign data path
+data_path = '/home/ec2-user/SageMaker/data_analyst/db_data/sql_db_out.csv'
+
+# Call function and get plot
+plot_out = plot_sales(data_path)"
+show the  timeseries charts for the weekly sales of store 20 and store 30 for this year,"
+<sample_data>
+{'Store':[20], 'Week': [10], 'Weekly_Sales': [1917483.1]}
+</sample_data>
+The question asks to plot timeseries charts for sales for store:20 and store:30 for this year
+From the sample given inside <sample_data></sample_data> tag, the relevant columns are 'Store', 'Week', 'Weekly_Sales'. The data is filtered for all the entities. So the data is not required to be filtered","def plot_timeseries(data_path):
+  # Import all the libraries inside function definition
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    
+
+    # Load data
+    df = pd.read_csv(data_path)
+
+    # No filtering required as data is already filtered
+
+    # Group data by 'Store' and 'Week', and sum 'Weekly_Sales'
+    grouped = df.groupby(['Store', 'Week'])['Weekly_Sales'].sum().reset_index()
+
+    # Pivot data to create wide format
+    pivoted = grouped.pivot(index='Week', columns='Store', values='Weekly_Sales')
+
+    # Create line plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+    pivoted.plot(kind='line', ax=ax)
+
+    # Set labels and title
+    ax.set_xlabel('Week')
+    ax.set_ylabel('Weekly Sales')
+    ax.set_title('Weekly Sales for Stores 20 and 30 
+
+    # Rotate x-tick labels
+    plt.xticks(rotation=90)
+
+    # Add legend
+    ax.legend(title='Store')
+
+    return fig
+
+# Assign data path
+data_path = '/home/ec2-user/SageMaker/data_analyst/db_data/sql_db_out.csv'
+
+# Call function and get plot
+plot_out = plot_timeseries(data_path)"
+show the box plot of the sales of store 100  in the year 2012,"
+<sample_data>
+{'Store':[100], 'Week': [10], 'Weekly_Sales': [1917483.1]}
+</sample_data>
+The question asks to plot boxplot charts for sales for store:100 for this year
+From the sample given inside <sample_data></sample_data> tag, the relevant columns are  'Week', 'Weekly_Sales'. The data is filtered for all the entities. So the data is not required to be filtered","def plot_box(data_path):
+    # Import required libraries inside function definition
+    import pandas as pd
+    import matplotlib.pyplot as plt
+
+    # Load data
+    df = pd.read_csv(data_path)
+
+    # No filtering required as data is already filtered
+    
+    # Create box plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.boxplot(df['Weekly_Sales'])
+
+    # Set labels and title
+    ax.set_xlabel('Week')
+    ax.set_ylabel('Weekly Sales')
+    ax.set_title('Box Plot of Weekly Sales for Store 10 (Weeks 2-20, 2012)')
+
+    # Rotate x-tick labels
+    plt.xticks(rotation=90)
+
+    return fig
+
+# Assign data path
+data_path = '/home/ec2-user/SageMaker/data_analyst/db_data/sql_db_out.csv'
+
+# Call function and get plot
+plot_out = plot_box(data_path)"
+Create a pie chart for sales of store 10 between weeks 10 and 16 of 2012,"<sample_data>
+{'Week': [10], 'TotalSales': [1917483.1]}
+</sample_data>
+
+The question asks to plot pie chart for sales for store number 10.  From the <sample_data></sample_data> tag, the relevant columns are 'Week', 'TotalSales'.The data is filtered for all the entities. So the data is not required to be filtered","def plot_pie_chart(data_path):
+    # Import required libraries inside function definition
+    import pandas as pd
+    import matplotlib.pyplot as plt
+
+    # Load data
+    df = pd.read_csv(data_path)
+
+    # No filtering required as data is already filtered
+
+    # Create pie chart
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.pie(df['TotalSales'], labels=df['Week'], autopct='%1.1f%%')
+    ax.axis('equal')  # Equal aspect ratio ensures the pie chart is circular
+    ax.set_title('Sales for Store 10 (Weeks 10-16, 2012)')
+
+    return fig
+
+# Assign data path
+data_path = '/home/sagemaker-user/data_analyst_bot/db_data/sql_db_out.csv'
+
+# Call function and get plot
+plot_out = plot_pie_chart(data_path)"

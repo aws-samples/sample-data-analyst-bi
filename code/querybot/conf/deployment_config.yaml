@@ -1,0 +1,35 @@
+# ##Deploy finetuned Codellama-7b model
+# Deployment Config:
+#   model_id: "s3://td-gai-2023/codellama/finetuned/finetuned_model.tar.gz"   # HF model, if pretrained / S3 link to the tar file of model, if finetuned.
+#   model_name: "finetuned-codellama"         # Name to be used for SageMaker model and endpoint names.
+#   instance_type: "ml.g5.12xlarge" # Inference instance type
+#   sm_endpoint_name_export_file: "../data/hf_sm_endpoint.txt" # filepath to export SM model endpoint
+
+# LMI Deployment Config:
+#   lmi_framework: "djl-tensorrtllm" # DJL framework to use for SM LMI (other option: djl-deepspeed)
+#   s3_bucket: "td-gai-2023" # S3 bucket to use 
+#   instanceType: "ml.g5.12xlarge" # Inference instance type
+#   model_id: "s3://td-gai-2023/codellama/finetuned/finetuned_model.tar.gz" # Location of finetuned model tar (for pretrained HF model, use model id, e.g. codellama/CodeLlama-7b-Instruct-hf)
+#   model_name: "finetuned-codellama" # Name to be used for SageMaker model and endpoint names.
+#   s3_destination_prefix: "hf-large-model-djl/code_llama_finetuned" # S3 location where model artifacts and DJL LMI config to be uploaded
+#   replace_existing_model_data: True # If model data/config folders already exist in local or S3, should those be replaced with new?
+#   finetuned_model: True # Whether a fintuned model is being deployed. If True, model_id is expected to be a S3 tar file location. If False, a HF pretrained model us expected.
+#   sm_endpoint_name_export_file: "../data/hf_sm_endpoint.txt" # filepath to export SM model endpoint
+
+##Deploy pretrained SqlCoder-7b-2 model
+Deployment Config:
+  model_id: "defog/sqlcoder-7b-2"     # HF model, if pretrained / S3 link to the tar file of model, if finetuned.
+  model_name: "pretrained-sqlcoder-7b-2"         # Name to be used for SageMaker model and endpoint names.
+  instance_type: "ml.g5.12xlarge" # Inference instance type
+  sm_endpoint_name_export_file: "../data/hf_sm_endpoint.txt" # filepath to export SM model endpoint
+
+LMI Deployment Config:
+  lmi_framework: "djl-tensorrtllm" # DJL framework to use for SM LMI (other option: djl-deepspeed)
+  s3_bucket: "td-gai-2023" # S3 bucket to use 
+  instanceType: "ml.g5.12xlarge" # Inference instance type
+  model_id: "defog/sqlcoder-7b-2" # Location of finetuned model tar (for pretrained HF model, use model id, e.g. codellama/CodeLlama-7b-Instruct-hf)
+  model_name: "pretrained-sqlcoder-7b-2" # Name to be used for SageMaker model and endpoint names.
+  s3_destination_prefix: "hf-large-model-djl/sqlcoder-7b-2" # S3 location where model artifacts and DJL LMI config to be uploaded
+  replace_existing_model_data: True # If model data/config folders already exist in local or S3, should those be replaced with new?
+  finetuned_model: False # Whether a fintuned model is being deployed. If True, model_id is expected to be a S3 tar file location. If False, a HF pretrained model us expected.
+  sm_endpoint_name_export_file: "../data/hf_sm_endpoint.txt" # filepath to export SM model endpoint

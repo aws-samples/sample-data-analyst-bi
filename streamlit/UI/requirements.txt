@@ -1,0 +1,7 @@
+streamlit
+requests
+boto3
+botocore
+pandas
+tabulate
+st-pages

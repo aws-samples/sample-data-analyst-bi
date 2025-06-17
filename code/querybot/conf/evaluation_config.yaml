@@ -1,0 +1,43 @@
+zero-shot claude v2.1:
+  model_id: "anthropic.claude-v2:1"
+  approach: "zero_shot"
+  database: "sqlite"
+  db_file_path: "../data/college_2.sqlite"
+  eval_dataset: "../data/college_2_test.csv"
+
+zero-shot claude instant:
+  model_id: "anthropic.claude-instant-v1"
+  approach: "zero_shot"
+  database: "sqlite"
+  db_file_path: "../data/college_2.sqlite"
+  eval_dataset: "../data/college_2_test.csv"
+
+few-shot claude v2.1:
+  model_id: "anthropic.claude-v2:1"
+  approach: "few_shot"
+  database: "sqlite"
+  db_file_path: "../data/college_2.sqlite"
+  eval_dataset: "../data/college_2_test.csv"
+  aoss_hot: "https://6su0bnt1ck2p0igi9ui9.us-east-1.aoss.amazonaws.com:443"
+  aoss_index_name: "txt2sql-idx"
+  k: 3
+
+few-shot claude instant:
+  model_id: "anthropic.claude-instant-v1"
+  approach: "few_shot"
+  database: "sqlite"
+  db_file_path: "../data/college_2.sqlite"
+  eval_dataset: "../data/college_2_test.csv"
+  aoss_hot: "https://6su0bnt1ck2p0igi9ui9.us-east-1.aoss.amazonaws.com:443"
+  aoss_index_name: "txt2sql-idx"
+  k: 3
+
+zero-shot finetuned codellama:
+  model_id: "finetuned-codellama-2024-02-22-16-17-44-589-endpoint"
+  approach: "zero_shot_finetuned"
+  database: "sqlite"
+  db_file_path: "../data/college_2.sqlite"
+  eval_dataset: "../data/college_2_test.csv"
+  temperature: 0.05
+  runtime_top_p: 0.5
+  runtime_top_k: 100
