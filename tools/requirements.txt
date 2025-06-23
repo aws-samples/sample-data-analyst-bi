@@ -1,0 +1,1 @@
+pip install psycopg2-binary pymysql pandas boto3 openpyxl
