@@ -301,8 +301,8 @@ build_custom_layers() {
         exit 1
     fi
     
-    if [ ! -f "requirements.txt" ]; then
-        print_error "requirements.txt not found in layers directory"
+    if [ ! -f "data-analyst-requirements.txt" ]; then
+        print_error "data-analyst-requirements.txt not found in layers directory"
         exit 1
     fi
     

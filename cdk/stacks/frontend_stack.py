@@ -65,6 +65,7 @@ class FrontendStack(Stack):
                  **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+        self.template_options.description = f"{project_name} Frontend (uksb-vhbajid3y7)"
         self.project_name = project_name
         self.backend_stack = backend_stack
         

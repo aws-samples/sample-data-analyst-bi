@@ -41,6 +41,7 @@ class VpcEndpointsStack(Stack):
                  **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+        self.template_options.description = f"{project_name} VPC Endpoints (uksb-vhbajid3y7)"
         self.project_name = project_name
         self.vpc_id = vpc_id
         logger.info(f"Initializing VpcEndpointsStack for project: {project_name}")
