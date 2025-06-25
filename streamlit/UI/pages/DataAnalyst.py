@@ -9,7 +9,7 @@ import boto3
 import pandas as pd
 import base64
 from streamlit.components.v1 import html
-from config import ACTIVE_DB_CONFIG, metadata, model_id, chat_model_id, expl_model_id, embedding_model_id, sql_gen_approach, chat_save, context_hist_size, CHAT_DIR_LOCAL, CHAT_S3, METADATA_CONFIG, API_URL, API_KEY, QUERY_TYPES, cache_thresh
+from config import ACTIVE_DB_CONFIG, metadata, model_id, chat_model_id, expl_model_id, embedding_model_id, sql_gen_approach, chat_save, context_hist_size, CHAT_DIR_LOCAL, CHAT_S3, METADATA_CONFIG, API_URL, API_KEY, QUERY_TYPES, cache_thresh, table_selection
 from enum import Enum
 import uuid
 import logging
@@ -344,6 +344,7 @@ def send_api_request(user_query: str, query_type: str, user_persona: str,
         "embedding_model_id": embedding_model_id,
         "expl_model_id": expl_model_id,
         "approach": sql_gen_approach,
+        "table_selection": table_selection,
         "query_type": query_type,
         "cache_thresh": cache_thresh,
         "db_conn_conf": {
@@ -659,7 +660,7 @@ if __name__ == "__main__":
                         chat_content.append(answer)
                     if python_code:
                         chat_content.append(python_code)  # Fixed: was using 'sql' variable which is undefined here
-
+                    logger.info(f"💬 Current Question - {st.session_state.current_question}/n Current Response - {chat_content}")
                 with plot_container:
                     try:
                         plot_image = base64.b64decode(plot_data)
@@ -692,12 +693,9 @@ if __name__ == "__main__":
                     if sql:
                         chat_content.append(sql)
                         sql = re.sub(r'\s+', ' ', sql)
-                        # st.session_state['text_sql_status'].append({"question": st.session_state.current_user_input,
-                        #                                             "sql": st.session_state.current_sql})
                     else:
                         sql = ""
-                        # st.session_state['text_sql_status'].append({"question": st.session_state.current_user_input, "sql": ""})
-                    
+                    logger.info(f"💬 Current Question - {st.session_state.current_question}/n Current Response - {chat_content}")
                     add_to_chat_history(question=None, answer="\n".join(chat_content), table=None)
                 
                 # Process dataframe if present in the same response
@@ -757,5 +755,5 @@ if __name__ == "__main__":
                         if 'dataframe_error' in response:
                             st.error(f"Server error: {response['dataframe_error']}")
     
-    # Save chat history
-    save_chat_history(st.session_state['text_sql_status'], st.session_state.uid)
+    # # Save chat history
+    # save_chat_history(st.session_state['text_sql_status'], st.session_state.uid)

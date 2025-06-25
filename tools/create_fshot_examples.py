@@ -1,4 +1,3 @@
-
 import boto3
 import pandas as pd
 import numpy as np
@@ -7,29 +6,72 @@ import psycopg2
 import os
 from psycopg2.extras import execute_values
 from SQL2Text import get_question
-from config import vector_db_config, vector_table_name, fshot_example_filename, explnation_modelid, region_name
+from config import emb_model, vector_db_config, fshot_example_filename, explanation_modelid, region_name
 
 
 bedrock = boto3.client(service_name="bedrock-runtime", region_name=region_name)
 
+def add_vector_extension(cur):
+    try:
+        cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+        print("Vector extension added successfully.")
+    except psycopg2.Error as e:
+        print(f"Could not add vector extension: {e}")
+
 
 def get_embedding(text):
-    """
-    Creates the embedding of the nlq/text question
-    """
-    body = json.dumps({"inputText": text, "embeddingTypes": ["float"]})
+
+    print('Embedding Model ID:', emb_model)
+
+    if 'cohere' in emb_model:
+        body = json.dumps({
+        "texts": [text],
+        "input_type": "search_query",
+        "truncate": "END",
+        "embedding_types": ["float"]
+    })
+    else:
+        body = json.dumps({
+            "inputText": text,
+            "embeddingTypes": ["float"]
+        })
 
     response = bedrock.invoke_model(
         body=body,
-        modelId="amazon.titan-embed-text-v2:0",
-        accept="application/json",
-        contentType="application/json",
+        modelId=emb_model,
+        accept='application/json',
+        contentType='application/json'
     )
+    
+    response_body = json.loads(response['body'].read())
+    if 'cohere' in emb_model:
+        return response_body['embeddings']['float'][0]
+    
+    return response_body['embedding']
 
-    response_body = json.loads(response["body"].read())
-    return response_body["embedding"]
-
-
+def create_table_fshot(cur):
+    """
+    Creates the table in the vector database to store the data
+    """
+    try:
+        cur.execute(f"""
+            CREATE TABLE IF NOT EXISTS examples (
+                id SERIAL PRIMARY KEY,
+                query TEXT NOT NULL,
+                question TEXT NOT NULL,
+                explanation TEXT NOT NULL,
+                gen_question TEXT NOT NULL,
+                question_embedding vector(1024)
+            );
+            CREATE INDEX IF NOT EXISTS question_embedding_idx
+            ON examples
+            USING ivfflat (question_embedding vector_cosine_ops)
+            WITH (lists = 100);
+        """)
+        print(f"Table examples created successfully with vector index.")
+    except psycopg2.Error as e:
+        print(f"Could not create table: {e}")
+        
 def insert_data_to_postgres(conn, df):
     """
     Creates the connection to the vector database and ingests the data
@@ -42,7 +84,7 @@ def insert_data_to_postgres(conn, df):
         execute_values(
             cur,
             f"""
-            INSERT INTO {vector_table_name} 
+            INSERT INTO examples 
             (query, question, explanation, gen_question, question_embedding)
             VALUES %s
         """,
@@ -120,7 +162,7 @@ def main():
 
     try:
         example_filepath = os.path.join("fshot_data", fshot_example_filename)
-        ingest_examples(explnation_modelid, example_filepath, vector_db_config)
+        ingest_examples(explanation_modelid, example_filepath, vector_db_config)
     except Exception as e:
         print(f"Error in ingesting examples to vector database: {str(e)}")
         status_code = 500

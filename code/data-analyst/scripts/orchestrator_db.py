@@ -52,7 +52,7 @@ from scripts.query_db.prompt_config_clv3 import question_mod_prompt
 logger = logging.getLogger(__name__)
 
 
-def invoke_sql_generator_lambda(messages, query, db_config, model_id, embedding_model_id, approach, metadata, session, query_tabs=None):
+def invoke_sql_generator_lambda(messages, query, db_config, model_id, embedding_model_id, approach, metadata, session, table_selection, query_tabs=None):
     """
     Invokes an AWS Lambda function to generate SQL queries based on input parameters.
     
@@ -101,6 +101,7 @@ def invoke_sql_generator_lambda(messages, query, db_config, model_id, embedding_
                 "user": db_config.get("user"),
                 "password": db_config.get("password")
             },
+            "table_selection": table_selection,
             "metadata":metadata,
             "question": query,
             "messages": messages,
@@ -208,7 +209,7 @@ def get_question_categories(question):
 
 # query_tabs is not needed
 # /home/sagemaker-user/data_analyst_bot/da_refactor/scripts/query_db/pgsql_executor.py
-def generate_answers_db(query, query_type, messages, schema_extractor, schema_str, db_config, chat_model_id, sql_model_id, embedding_model_id, approach, metadata, session, q_mod_prompt = None, query_tabs=None, iteration_id=None, time_tracker=None):
+def generate_answers_db(query, query_type, messages, schema_extractor, schema_str, db_config, chat_model_id, sql_model_id, embedding_model_id, approach, metadata, session, table_selection, q_mod_prompt = None, query_tabs=None, iteration_id=None, time_tracker=None):
     """Section to invoke modules to generate answers for a usecase involving database
 
     Args:
@@ -242,7 +243,7 @@ def generate_answers_db(query, query_type, messages, schema_extractor, schema_st
             time_tracker.start_process(iteration_id, "aggregation - sql_generation")
             st = time.time()
             try:
-                sql_gen, sql_result, error_msg = invoke_sql_generator_lambda(messages, query, db_config, sql_model_id, embedding_model_id, approach, metadata, session, query_tabs)
+                sql_gen, sql_result, error_msg = invoke_sql_generator_lambda(messages, query, db_config, sql_model_id, embedding_model_id, approach, metadata, session, table_selection, query_tabs)
             except ValueError as ve:
                 logger.error("Unpacking error in invoke_sql_generator_lambda: %s", ve)
                 raise

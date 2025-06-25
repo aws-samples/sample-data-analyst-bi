@@ -1,24 +1,22 @@
 
-db_config = {
-"db_host": "database-1.cx4aggus4yac.us-east-1.rds.amazonaws.com",
-"db_port": 5432,
-"db_name": "data_analyst_rdspg"
-}
-
-secret_name = "rds!db-d55f40a3-bb2d-4ec5-8660-c3f0a21629cd"
+fshot_example_filename = "examples.xlsx" ## Name of the file which contains the fewshot examples
+emb_model = "cohere.embed-english-v3" ## embedding model id
+explanation_modelid = "anthropic.claude-3-haiku-20240307-v1:0" ## model to generate explanations from the SQL which will be added to fewshot examples
 region_name = "us-east-1"
 
-
+## vector database parameters
 vector_db_config = {
-        "host": "data-analyst-grit-postgresdb-vhuedimucp1q.cx4aggus4yac.us-east-1.rds.amazonaws.com",  # RDS endpoint address
-        "port": 5432,  # RDS port number
-        "database": "vectorstore",  # Database name from CloudFormation
-        "user": "admin25",  # Database username from CloudFormation
-        "password": "BlsAmz#20"  # Database password from CloudFormation
-    }
+        "host": "<DATABASE ENDPOINT NAME>",  # RDS endpoint address
+        "port": "<PORT NUMBER>",  # RDS port number
+        "database": "<DATABASE NAME>",  # Database name from CloudFormation output
+        "user": "<USERNAME>",  # Database username from CloudFormation output
+        "password": "<PASSWORD>"  # Database password from CloudFormation output
+                    }
 
-vector_table_name = "vector_table"
-
-fshot_example_filename = "examples.xlsx"
-
-explnation_modelid = "anthropic.claude-3-haiku-20240307-v1:0"
+## SQL database parameters(Set the values for the following parameters)
+db_config = {
+        "host": "<DATABASE ENDPOINT NAME>",
+        "port": "<PORT NUMBER>",
+        "user": "<USERNAME>",
+        "password": "<PASSWORD>"
+            }

@@ -52,7 +52,7 @@ def create_schema_meta(
         print("tables inside create_schema_meta", tables)
 
         # Add metrics section if metric_meta is provided
-        if metric_meta is not None:
+        if metric_meta not in [None, '']:
             print("metric_meta", metric_meta)
             schema_str += "Metrics:\n"
             metric_meta.columns = metric_meta.columns.str.strip()

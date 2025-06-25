@@ -301,6 +301,7 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
         embedding_model_id = parsed_input.get("embedding_model_id")
         expl_model_id = parsed_input.get("expl_model_id")
         approach =  parsed_input.get("approach")
+        table_selection = parsed_input.get("table_selection")
         metadata = parsed_input.get("metadata")
         session = parsed_input.get("session")
         q_mod_prompt = parsed_input.get("q_mod_prompt")
@@ -496,7 +497,7 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
                 # Generate SQL response
                 time_tracker.start_process(iteration_id, "YesSQL")
                 logger.debug("Schema string before calling lambda: %s", schema_str[:200] + "..." if len(schema_str) > 200 else schema_str)
-                answer, sql_gen, error_msg, cat_gen, split_gen, prompt, df, suggestion, replacement_message = generate_answers_db(user_query, query_type, messages, extractor, schema_str, db_config, chat_model_id, sql_model_id, embedding_model_id, approach, metadata, session, q_mod_prompt, query_tabs=None, iteration_id=iteration_id, time_tracker=time_tracker) # Pass extractor
+                answer, sql_gen, error_msg, cat_gen, split_gen, prompt, df, suggestion, replacement_message = generate_answers_db(user_query, query_type, messages, extractor, schema_str, db_config, chat_model_id, sql_model_id, embedding_model_id, approach, metadata, session, table_selection, q_mod_prompt, query_tabs=None, iteration_id=iteration_id, time_tracker=time_tracker) # Pass extractor
 
                 time_tracker.end_process(iteration_id)
                 
