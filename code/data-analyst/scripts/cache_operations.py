@@ -22,7 +22,7 @@ my_config = Config(
     }
 )
 
-vector_table = "examplesv2"
+vector_table = "examples"
 
 bedrock_rt = boto3.client("bedrock-runtime", config = my_config)
 

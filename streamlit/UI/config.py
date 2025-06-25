@@ -223,6 +223,8 @@ sql_gen_approach = os.getenv("APPROACH", "few_shot")  # few_shot, zero_shot, aut
 # Cache threshold for selecting entries from a cache database
 cache_thresh = os.getenv("CACHE_THRESHOLD", 0.95)  # floating point values (0,1)
 
+table_selection = "all" ## values = ["all", "relevant"] determines whether tables are to be filtered based on a question, Default - "all" means all tables are to be used
+
 # Whether the chat history is saved in 'S3' or 'local'
 chat_save = 'local'
 

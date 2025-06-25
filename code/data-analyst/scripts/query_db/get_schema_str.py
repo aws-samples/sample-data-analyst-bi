@@ -103,10 +103,11 @@ class DatabaseSchemaExtractor:
             
             if is_meta:
                 try:
+                    s3_client = boto3.client('s3')
                     table_meta = metadata['table_meta']
                     s3_bucket_name = metadata['s3_bucket_name']
                     logger.info(f"Processing table metadata from: {table_meta}")
-                    table_meta_response = s3.get_object(Bucket=s3_bucket_name, Key=table_meta)
+                    table_meta_response = s3_client.get_object(Bucket=s3_bucket_name, Key=table_meta)
                     table_meta = pd.read_excel(io.BytesIO(table_meta_response['Body'].read()))
                     tab_meta_tables = table_meta['Table Name'].unique().tolist()
                     logger.info(f"Tables from metadata: {tab_meta_tables}")

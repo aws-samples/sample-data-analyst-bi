@@ -80,6 +80,7 @@ def lambda_handler(event, context):
         database_type = body.get("database_type")
         db_conn_conf = body.get("db_conn_conf")
         metadata = body.get("metadata")
+        table_selection = body.get("table_selection")
         db_schema_file = None
         model_args = body.get("model_args")
         question = body.get("question")
@@ -117,7 +118,7 @@ def lambda_handler(event, context):
                 database_type,
                 db_conn_conf,
                 db_schema_file,
-                #schema_str, ##change2
+                table_selection,
                 LLM_CONF[model_id],
             )
             end = time.time()

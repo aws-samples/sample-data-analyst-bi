@@ -10,7 +10,7 @@ from typing import List, Optional
 from scripts.sagemaker_llm import SageMakerLLM
 from scripts.bedrock_llm import BedrockLLM
 from scripts.utils import init_bedrock_llm, get_embedding, s3_key_exists
-from scripts.config import LLM_CONF, AWS_REGION, AOSS_RELEVANCE_THRESHOLD, CACHE_THRESHOLD
+from scripts.config import LLM_CONF, AWS_REGION, AOSS_RELEVANCE_THRESHOLD
 from scripts.prompts import (
     BEDROCK_SYS_PROMPT,
     LLM_ZS_PROMPTS,
@@ -58,7 +58,7 @@ class SQLGenerator(ABC):
                 cur.execute(
                     """
                     SELECT query, question, explanation, gen_question, 1 - (question_embedding <=> %s::vector) AS similarity
-                    FROM examplesv2
+                    FROM examples
                     ORDER BY question_embedding <=> %s::vector
                     LIMIT %s;
                     """,
@@ -120,6 +120,7 @@ class SQLGeneratorBedrock(SQLGenerator):
         schema_file: str,
         aoss_host: str = None,
         aoss_index: str = None,
+        table_selection: str = "all",
         model_params: dict[str, any] = None,
         k: int = 5,
     ) -> None:
@@ -143,37 +144,10 @@ class SQLGeneratorBedrock(SQLGenerator):
             rectification_attempt=3,
             schema_file=schema_file,
         )
+        self.table_selection = table_selection
         self.aoss_host = aoss_host
         self.aoss_index = aoss_index
         self.k = k
-
-
-    def get_cached_query(self, text_query: str, embedding_model_id: str) -> list[str]:
-        query = None
-        db_params = {
-            "host": os.environ.get("DB_HOST"),
-            "port": os.environ.get("DB_PORT"),
-            "database": os.environ.get("DB_NAME"),
-            "user": os.environ.get("DB_USER"),
-            "password":os.environ.get("DB_PASSWORD"),
-        }
-        self.conn = psycopg2.connect(**db_params)
-        try:
-            self.conn.autocommit = True
-        except:
-            print("get_cached queries: Failed to establish connection")
-            return None
-        
-        embeddings = get_embedding(text_query, embedding_model_id)
-        #print("embeddings", embeddings)
-        similarity_examples = self.similarity_search(self.conn, embeddings, 1)
-        print("similarity_examples", similarity_examples)
-        for query, question, expl, gen_question,  similarity in similarity_examples:
-            print('get_cached_query: Evaluating example:', query, question, expl, gen_question, similarity)
-            if similarity >= CACHE_THRESHOLD:
-                return query
-            else:
-                return None
 
     def generate_zeroshot(
         self,
@@ -193,17 +167,33 @@ class SQLGeneratorBedrock(SQLGenerator):
             print('schema_info is not a str')
             print('is_meta:', is_meta)
             if is_meta:
-                if s3_key_exists(s3_bucket_name, table_meta) and s3_key_exists(
-                    s3_bucket_name, column_meta
-                ):
-                    table_meta = pd.read_excel(f"s3://{s3_bucket_name}/{table_meta}")
-                    column_meta = pd.read_excel(f"s3://{s3_bucket_name}/{column_meta}")
-                    metric_meta = pd.read_excel(f"s3://{s3_bucket_name}/{metric_meta}")
+                if table_meta not in [None, ''] and column_meta not in [None, '']:
+                    if s3_key_exists(s3_bucket_name, table_meta) and \
+                        s3_key_exists(s3_bucket_name, column_meta):
+                        # s3_key_exists(s3_bucket_name, metric_meta)
+                        print('s3 keys for metadata exist.')
+                        table_meta = pd.read_excel(f"s3://{s3_bucket_name}/{table_meta}")
+                        column_meta = pd.read_excel(f"s3://{s3_bucket_name}/{column_meta}")
+                        print("tab meta shape", table_meta.shape)
+                        print("column_meta shape", column_meta.shape)
+                    else:
+                        print('s3 keys for table and column metadata don\'t exist.')
+                        table_meta = None
+                        column_meta = None
+                        is_meta = False
                 else:
                     table_meta = None
                     column_meta = None
-                    metric_meta = None
                     is_meta = False
+
+                if metric_meta not in [None, '']:
+                    if s3_key_exists(s3_bucket_name, metric_meta):
+                        metric_meta = pd.read_excel(f"s3://{s3_bucket_name}/{metric_meta}")
+                    else:
+                        print('s3 keys for metric metadata don\'t exist.')
+                        metric_meta = None
+                else:
+                    metric_meta = None
                 schema_meta = create_schema_meta(
                     schema_info, table_meta, column_meta, None, foreign_key_str, is_meta, distinct_values, metric_meta
                 )
@@ -224,13 +214,16 @@ class SQLGeneratorBedrock(SQLGenerator):
                 table_access = f"s3://{s3_bucket_name}/{table_access}"
             else:
                 table_access = None
-        message, tables_list = filter_tables(
-            text_query, schema_meta, table_access, self.model_id
-        )
-        print("Filtered Tables:", tables_list)
-        if message:
-            return message, schema_info, foreign_key_str, schema_meta
-        filtered_schema_meta = filter_table_info(schema_meta, tables_list)
+        if self.table_selection == "all":
+            filtered_schema_meta = schema_meta
+        else:
+            message, tables_list = filter_tables(
+                text_query, schema_meta, table_access, self.model_id
+            )
+            print("Filtered Tables:", tables_list)
+            if message:
+                return message, schema_info, foreign_key_str, schema_meta
+            filtered_schema_meta = filter_table_info(schema_meta, tables_list)
         sys_prompt = BEDROCK_SYS_PROMPT.format(sql_database=self.database)
         sql_prompt = LLM_ZS_PROMPTS[self.model_id].format(
             schema=filtered_schema_meta, question=text_query
@@ -270,21 +263,38 @@ class SQLGeneratorBedrock(SQLGenerator):
         if not isinstance(schema_info, str):
             if is_meta:
                 print('Using metadata from s3.')
-                if s3_key_exists(s3_bucket_name, table_meta) and \
-                    s3_key_exists(s3_bucket_name, column_meta) and \
-                    s3_key_exists(s3_bucket_name, metric_meta):
-                    print('s3 keys for metadata exist.')
-                    table_meta = pd.read_excel(f"s3://{s3_bucket_name}/{table_meta}")
-                    column_meta = pd.read_excel(f"s3://{s3_bucket_name}/{column_meta}")
-                    metric_meta = pd.read_excel(f"s3://{s3_bucket_name}/{metric_meta}")
+                print("s3_bucket_name metadata", s3_bucket_name)
+                if table_meta not in [None, ''] and column_meta not in [None, '']:
+                    if s3_key_exists(s3_bucket_name, table_meta) and \
+                        s3_key_exists(s3_bucket_name, column_meta):
+                        # s3_key_exists(s3_bucket_name, metric_meta)
+                        print('s3 keys for metadata exist.')
+                        table_meta = pd.read_excel(f"s3://{s3_bucket_name}/{table_meta}")
+                        column_meta = pd.read_excel(f"s3://{s3_bucket_name}/{column_meta}")
+                        print("tab meta shape", table_meta.shape)
+                        print("column_meta shape", column_meta.shape)
+                    else:
+                        print('s3 keys for table and column metadata don\'t exist.')
+                        table_meta = None
+                        column_meta = None
+                        is_meta = False
                 else:
-                    print('s3 keys for metadata don\'t exist.')
                     table_meta = None
                     column_meta = None
-                    is_meta = None
+                    is_meta = False
+
+                if metric_meta not in [None, '']:
+                    if s3_key_exists(s3_bucket_name, metric_meta):
+                        metric_meta = pd.read_excel(f"s3://{s3_bucket_name}/{metric_meta}")
+                    else:
+                        print('s3 keys for metric metadata don\'t exist.')
+                        metric_meta = None
+                else:
+                    metric_meta = None
                 schema_meta = create_schema_meta(
                     schema_info, table_meta, column_meta, None, foreign_key_str, is_meta, distinct_values, metric_meta
                 )
+                print("schema meta after using table and column metadata",schema_meta )
                 if schema_meta is None:
                     schema_meta = json.dumps({"schema": schema_info.to_dict()})
                 else:
@@ -303,14 +313,17 @@ class SQLGeneratorBedrock(SQLGenerator):
                 table_access = f"s3://{s3_bucket_name}/{table_access}"
             else:
                 table_access = None
-        message, tables_list = filter_tables(
-            text_query, schema_meta, table_access, self.model_id
-        )
-        print("Schema Meta:", schema_meta)
-        print("Filtered Tables ::", tables_list)
-        if message:
-            return message
-        filtered_schema_meta = filter_table_info(schema_meta, tables_list)
+        if self.table_selection == "all":
+            filtered_schema_meta = schema_meta
+        else:
+            message, tables_list = filter_tables(
+                text_query, schema_meta, table_access, self.model_id
+            )
+            print("Schema Meta:", schema_meta)
+            print("Filtered Tables ::", tables_list)
+            if message:
+                return message
+            filtered_schema_meta = filter_table_info(schema_meta, tables_list)
         examples = self.get_fewshot_examples(text_query, embedding_model_id)
         print("examples retrieved:", examples)
         sys_prompt = BEDROCK_SYS_PROMPT.format(sql_database=self.database)

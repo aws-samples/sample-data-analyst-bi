@@ -8,7 +8,7 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 import psycopg2
 from psycopg2 import sql
-from config import db_config, secret_name, region_name
+from config import db_config, region_name
 import pymysql
 
 import re
@@ -25,45 +25,26 @@ my_config = Config(
 bedrock_rt = boto3.client("bedrock-runtime", config = my_config)
 s3_client = boto3.client("s3")
 
-def get_secret():
+# def get_secret():
 
-    # Create a Secrets Manager client
-    session = boto3.session.Session()
-    client = session.client(
-        service_name='secretsmanager',
-        region_name=region_name
-    )
+#     # Create a Secrets Manager client
+#     session = boto3.session.Session()
+#     client = session.client(
+#         service_name='secretsmanager',
+#         region_name=region_name
+#     )
 
-    try:
-        get_secret_value_response = client.get_secret_value(
-            SecretId=secret_name
-        )
-    except ClientError as e:
-        # For a list of exceptions thrown, see
-        # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
-        raise e
+#     try:
+#         get_secret_value_response = client.get_secret_value(
+#             SecretId=secret_name
+#         )
+#     except ClientError as e:
+#         # For a list of exceptions thrown, see
+#         # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+#         raise e
 
-    secret = get_secret_value_response['SecretString']
-    return secret
-
-# conn = psycopg2.connect(
-#     host=db_host,
-#     port=db_port,
-#     database=db_name,
-#     user=db_user,
-#     password=db_password
-# )
-
-# cursor = conn.cursor()
-
-# table_name = "sql2text_food"
-# columns = [
-#     {"name": "sql_query", "type": "TEXT"},
-#     {"name": "explanation", "type": "TEXT"},
-#     {"name": "generated_question", "type": "TEXT"},
-#     {"name": "embedded_questions", "type": "VECTOR(1024)"},
-#     {"name": "confidence_scores", "type": "numeric[]"}
-# ]
+#     secret = get_secret_value_response['SecretString']
+#     return secret
 
 def get_existing_columns(table_name):
     # Query to get existing columns of the table
@@ -126,16 +107,6 @@ def create_table(cursor, conn):
     cursor.execute(create_table_sql)
     conn.commit()
 
-# if not table_exists(cursor, table_name):
-#     create_table(cursor, conn)
-#     print(f"Table '{table_name}' created successfully.")
-# else:
-#     print(f"Table '{table_name}' already exists.")
-
-
-# print(f"Columns added to {table_name} successfully.")
-
-# add_missing_columns(table_name, columns)
 
 
 def create_claude_body(
@@ -189,12 +160,12 @@ def get_claude_response(messages="",
 
 def get_metadata():
 
-    secret = get_secret()
+    #secret = get_secret()
     db_host = db_config["db_host"]
     db_name = db_config["db_name"]
     db_port = db_config["db_port"]
-    db_user = secret["username"]
-    db_password = secret["password"]
+    db_user = db_config["user"]
+    db_password = db_config["password"]
     
 
     # Connect to the PostgreSQL database
@@ -401,7 +372,7 @@ def get_question(query, examples_df, model_id, query_column_name, question_colum
         stop_sequence=["Human: "],
         model_id = model_id
         )
-    print("LLM response:\n ",text_resp)
+    #print("LLM response:\n ",text_resp)
     result = getmultitagtext(text_resp['content'][0]['text'], "question_gen")
     explain_result = getmultitagtext(text_resp['content'][0]['text'], "explanation")
     
