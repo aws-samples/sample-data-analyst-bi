@@ -142,6 +142,15 @@ if vpc_id:
         db_password=db_password,
         db_name=db_name,
         metadata_s3_bucket=metadata_s3_bucket,
+        metadata_is_meta=metadata_is_meta,
+        metadata_table_meta=metadata_table_meta,
+        metadata_column_meta=metadata_column_meta,
+        metadata_metric_meta=metadata_metric_meta,
+        metadata_table_access=metadata_table_access,
+        sql_model_id=sql_model_id,
+        chat_model_id=chat_model_id,
+        embedding_model_id=embedding_model_id,
+        approach=approach,
         env=env
     )
     
@@ -164,6 +173,15 @@ else:
         db_password=db_password,
         db_name=db_name,
         metadata_s3_bucket=metadata_s3_bucket,
+        metadata_is_meta=metadata_is_meta,
+        metadata_table_meta=metadata_table_meta,
+        metadata_column_meta=metadata_column_meta,
+        metadata_metric_meta=metadata_metric_meta,
+        metadata_table_access=metadata_table_access,
+        sql_model_id=sql_model_id,
+        chat_model_id=chat_model_id,
+        embedding_model_id=embedding_model_id,
+        approach=approach,
         env=env
     )
     

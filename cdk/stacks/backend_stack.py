@@ -68,6 +68,15 @@ class BackendStack(Stack):
                  db_name: str = "vectorstore",
                  guardrail_name: str = "data-analyst-bedrock-guardrail",
                  metadata_s3_bucket: str = None,
+                 metadata_is_meta: bool = True,
+                 metadata_table_meta: str = "schema/tables.xlsx",
+                 metadata_column_meta: str = "schema/columns.xlsx",
+                 metadata_metric_meta: str = "schema/metrics.xlsx",
+                 metadata_table_access: str = "",
+                 sql_model_id: str = "anthropic.claude-3-sonnet-20240229-v1:0",
+                 chat_model_id: str = "anthropic.claude-3-haiku-20240307-v1:0",
+                 embedding_model_id: str = "cohere.embed-multilingual-v3",
+                 approach: str = "few_shot",
                  **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
@@ -77,6 +86,19 @@ class BackendStack(Stack):
         self.db_name = db_name
         self.db_username = db_username
         self.db_password = db_password
+        
+        # Store metadata configuration parameters
+        self.metadata_is_meta = metadata_is_meta
+        self.metadata_table_meta = metadata_table_meta
+        self.metadata_column_meta = metadata_column_meta
+        self.metadata_metric_meta = metadata_metric_meta
+        self.metadata_table_access = metadata_table_access
+        
+        # Store model configuration parameters  
+        self.sql_model_id = sql_model_id
+        self.chat_model_id = chat_model_id
+        self.embedding_model_id = embedding_model_id
+        self.approach = approach
         logger.debug(f"Initializing BackendStack for project: {project_name}")
         if metadata_s3_bucket:
             logger.debug(f"External metadata S3 bucket: {metadata_s3_bucket}")
@@ -614,20 +636,20 @@ class BackendStack(Stack):
         
         # Create metadata configuration dictionary (with defaults)
         metadata_config = {
-            "s3_bucket_name": self.application_bucket.bucket_name,
-            "is_meta": True,
-            "table_meta": "schema/tables.xlsx",
-            "column_meta": "schema/columns.xlsx", 
-            "metric_meta": "schema/metrics.xlsx",
-            "table_access": ""
+            "s3_bucket_name": self.metadata_s3_bucket,
+            "is_meta": self.metadata_is_meta,
+            "table_meta": self.metadata_table_meta,
+            "column_meta": self.metadata_column_meta,
+            "metric_meta": self.metadata_metric_meta,
+            "table_access": self.metadata_table_access
         }
         
         # Create metadata dictionary for model configurations (with defaults)
         metadata_dict = {
-            "sql_model_id": "anthropic.claude-3-sonnet-20240229-v1:0",
-            "chat_model_id": "anthropic.claude-3-haiku-20240307-v1:0", 
-            "embedding_model_id": "cohere.embed-multilingual-v3",
-            "approach": "few_shot"
+            "sql_model_id": self.sql_model_id,
+            "chat_model_id": self.chat_model_id,
+            "embedding_model_id": self.embedding_model_id,
+            "approach": self.approach
         }
         
         # Create custom layers

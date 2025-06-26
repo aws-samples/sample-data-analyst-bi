@@ -49,7 +49,7 @@ A full-stack AWS data analysis platform with AI-powered SQL generation, featurin
 - **AWS Account**: With programmatic access enabled
 - **AWS Region**: Must support Bedrock, ECS, Lambda, RDS (recommend us-east-1 or us-west-2)
 - **Existing VPC**: Must have properly configured subnets (details in step 1)
-- **Metadata S3 Bucket**: Must pre-exist if using S3-Athena configurations
+- **Metadata S3 Bucket**: Must pre-exist (if using S3-Athena, CSVs have to be placed here)
 
 ### Step 1: Verify Infrastructure Prerequisites
 
@@ -146,6 +146,149 @@ aws sts get-caller-identity
     ]
 }
 ```
+
+</details>
+
+<details>
+<summary><b>Post-Deployment Minimal Role Policy</b></summary>
+
+> [!TIP]
+> Use this policy for day-to-day operations after deployment. It provides access to manage the service without full deployment permissions.
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "CloudWatchLogsAccess",
+            "Effect": "Allow",
+            "Action": [
+                "logs:DescribeLogGroups",
+                "logs:DescribeLogStreams",
+                "logs:GetLogEvents",
+                "logs:FilterLogEvents",
+                "logs:StartQuery",
+                "logs:StopQuery",
+                "logs:DescribeQueries",
+                "logs:GetQueryResults"
+            ],
+            "Resource": [
+                "arn:aws:logs:*:*:log-group:/aws/lambda/data-analyst-*",
+                "arn:aws:logs:*:*:log-group:/data-analyst-*"
+            ]
+        },
+        {
+            "Sid": "LambdaManagement",
+            "Effect": "Allow",
+            "Action": [
+                "lambda:GetFunction",
+                "lambda:GetFunctionConfiguration",
+                "lambda:UpdateFunctionCode",
+                "lambda:UpdateFunctionConfiguration",
+                "lambda:InvokeFunction",
+                "lambda:ListFunctions",
+                "lambda:GetLayerVersion",
+                "lambda:ListLayers"
+            ],
+            "Resource": [
+                "arn:aws:lambda:*:*:function:data-analyst-*",
+                "arn:aws:lambda:*:*:layer:data-analyst-*"
+            ]
+        },
+        {
+            "Sid": "S3Access",
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject",
+                "s3:ListBucket",
+                "s3:GetObjectVersion",
+                "s3:GetBucketLocation",
+                "s3:GetBucketVersioning"
+            ],
+            "Resource": [
+                "arn:aws:s3:::data-analyst-*",
+                "arn:aws:s3:::data-analyst-*/*"
+            ]
+        },
+        {
+            "Sid": "BastionHostAccess",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeInstances",
+                "ec2:DescribeInstanceStatus",
+                "ec2-instance-connect:SendSSHPublicKey",
+                "ssm:StartSession",
+                "ssm:TerminateSession",
+                "ssm:ResumeSession",
+                "ssm:DescribeSessions",
+                "ssm:GetConnectionStatus"
+            ],
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "ec2:ResourceTag/Project": "data-analyst"
+                }
+            }
+        },
+        {
+            "Sid": "ServiceMonitoring",
+            "Effect": "Allow",
+            "Action": [
+                "ecs:DescribeServices",
+                "ecs:DescribeTasks",
+                "ecs:DescribeTaskDefinition",
+                "ecs:ListTasks",
+                "ecs:DescribeClusters",
+                "apigateway:GET",
+                "rds:DescribeDBInstances",
+                "rds:DescribeDBClusters",
+                "dynamodb:DescribeTable",
+                "dynamodb:ListTables"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "SystemsManagerParameters",
+            "Effect": "Allow",
+            "Action": [
+                "ssm:GetParameter",
+                "ssm:GetParameters",
+                "ssm:GetParametersByPath",
+                "ssm:PutParameter"
+            ],
+            "Resource": "arn:aws:ssm:*:*:parameter/data-analyst/*"
+        },
+        {
+            "Sid": "BasicAccess",
+            "Effect": "Allow",
+            "Action": [
+                "sts:GetCallerIdentity",
+                "cloudformation:DescribeStacks",
+                "cloudformation:DescribeStackResources",
+                "cloudformation:ListStacks"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+**What this policy allows:**
+- **View and search logs** in CloudWatch for all Data Analyst components
+- **Update Lambda functions** code and configuration
+- **Access S3 buckets** created by the platform for data upload/download
+- **Connect to bastion host** via SSM Session Manager and EC2 Instance Connect
+- **Monitor service health** across ECS, RDS, DynamoDB, and API Gateway
+- **Manage configuration** via Systems Manager parameters
+- **Basic AWS operations** for service monitoring
+
+**What this policy does NOT allow:**
+- Creating or deleting infrastructure
+- Modifying IAM roles or policies
+- Changing VPC or security group settings
+- Accessing other AWS accounts or unrelated resources
 
 </details>
 
@@ -597,7 +740,7 @@ DataAnalyst/
 │   │       │   ├── executor.py   # SQL execution helpers
 │   │       │   └── evaluator.py  # Query evaluation
 │   │       └── support/          # Support utilities
-│   └── tools/                    # Step functions for Athena DB
+│   └── tools/                    # Tools for CSV import into S3-Athena
 ├── layers/                       # Custom Lambda layers
 │   ├── data-analyst-requirements.txt
 │   ├── querybot-requirements.txt
@@ -609,10 +752,7 @@ DataAnalyst/
 │       ├── config.py            # UI configuration
 │       └── pages/
 │           └── DataAnalyst.py   # Data analysis interface
-├── notebooks/                   # Jupyter notebooks for development
-├── test/                        # Test data and datasets
 ├── tools/                       # Development utilities
-├── docs/                        # Documentation files
 ├── deploy.sh                    # Main deployment script
 ├── ssh_tunnel.sh               # Secure access tunnel script
 └── view_logs.sh                # Log viewing utility
