@@ -20,3 +20,4 @@ db_config = {
         "user": "<USERNAME>",
         "password": "<PASSWORD>"
             }
+sqlite_dir = '/home/ec2-user/SageMaker/tools/sqlite_dbs' ## the path to the sqlite databases
