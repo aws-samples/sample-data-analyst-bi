@@ -416,6 +416,9 @@ http://localhost:8080
 ./view_logs.sh querybot
 ./view_logs.sh streamlit
 ```
+## Testing Guide
+
+[Testing](Testing.md) - Guide on what parameters, techniques to leverage for better performance and troubleshooting issues
 
 ## 🚨 Troubleshooting
 
@@ -752,7 +755,7 @@ DataAnalyst/
 │       ├── config.py            # UI configuration
 │       └── pages/
 │           └── DataAnalyst.py   # Data analysis interface
-├── tools/                       # Development utilities
+├── tools/                       # Development utilities - setting up cache/vector examples (Refer to Testing.md, section on Setting up the cache/fewshot examples)
 ├── deploy.sh                    # Main deployment script
 ├── ssh_tunnel.sh               # Secure access tunnel script
 └── view_logs.sh                # Log viewing utility
