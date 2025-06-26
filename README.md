@@ -32,86 +32,343 @@ A full-stack AWS data analysis platform with AI-powered SQL generation, featurin
 - **VPC Architecture**: Private subnets with egress and isolated subnets
 - **IAM Roles**: Least privilege access for all components
 
-## ⚡ Quick Start
-
+## ⚡ Get Started
 ### Prerequisites
-- AWS CLI configured with appropriate permissions
-- AWS CDK CLI installed (`npm install -g aws-cdk`)
-- Docker installed
-- Python 3.10+
 
-### 1. Configure Infrastructure
-Update key variables in `cdk.json`:
+> [!IMPORTANT]
+> Ensure all prerequisites are met before proceeding with deployment.
+
+#### Required Software
+- **Python 3.10+**: [Download](https://www.python.org/downloads/) | Check: `python --version`
+- **AWS CLI v2.x**: [Install Guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) | Check: `aws --version`
+- **Node.js 16+**: [Download](https://nodejs.org/en/download/) | Check: `node --version`
+- **AWS CDK CLI v2.x**: Install: `npm install -g aws-cdk` | Check: `cdk --version`
+- **Docker**: [Install Guide](https://docs.docker.com/get-docker/) | Check: `docker --version`
+
+#### AWS Account Requirements
+- **AWS Account**: With programmatic access enabled
+- **AWS Region**: Must support Bedrock, ECS, Lambda, RDS (recommend us-east-1 or us-west-2)
+- **Existing VPC**: Must have properly configured subnets (details in step 1)
+- **Metadata S3 Bucket**: Must pre-exist if using S3-Athena configurations
+
+### Step 1: Verify Infrastructure Prerequisites
+
+**Required Infrastructure:**
+- **VPC**: Existing VPC with proper DNS resolution enabled
+- **2 Private Egress Subnets**: With NAT Gateway access (for Lambda/ECS)
+- **2 Private Isolated Subnets**: Without internet access (for RDS)
+- **1 Security Group**: With required rules (see below)
+- **Different Availability Zones**: All subnets must span multiple AZs
+
+#### Security Group Configuration
+
+**Inbound Rules:**
+- `HTTP (80)` ← VPC CIDR: ALB to ECS communication
+- `HTTPS (443)` ← VPC CIDR: Secure web traffic
+- `PostgreSQL (5432)` ← VPC CIDR: Database access
+- `SSH (22)` ← VPC CIDR: Bastion host access
+- `Custom TCP (8501)` ← VPC CIDR: Streamlit application
+- `All Traffic` ← Self-reference: Inter-service communication
+
+**Outbound Rules:**
+- `HTTPS (443)` → 0.0.0.0/0: AWS API calls and Bedrock
+- `HTTP (80)` → 0.0.0.0/0: Package downloads
+- `PostgreSQL (5432)` → VPC CIDR: Database connections
+- `DNS (53 UDP/TCP)` → 0.0.0.0/0: Name resolution
+- `All Traffic` → Self-reference: Inter-service communication
+
+### Step 2: Configure AWS CLI & Permissions
+
+#### Set Up AWS Profile
+```bash
+# Configure a dedicated profile
+aws configure --profile data-analyst
+
+# Set environment variable for all subsequent commands
+export AWS_PROFILE=data-analyst
+
+# Verify configuration
+aws sts get-caller-identity
+```
+
+#### Required Permissions
+
+> [!TIP]
+> For development environments, use AWS managed policies. For production, implement least-privilege policies.
+
+**Development Quick Setup:**
+```bash
+# Attach these managed policies to your IAM user/role:
+- PowerUserAccess
+- IAMFullAccess  
+- CloudWatchLogsFullAccess
+```
+
+**Core Services Required:**
+- **Infrastructure**: CloudFormation, IAM, VPC/EC2, S3
+- **Compute**: Lambda, ECS, Application Load Balancer
+- **Database**: RDS, DynamoDB, Athena, Glue
+- **AI/API**: Bedrock, API Gateway, Step Functions
+- **Monitoring**: CloudWatch Logs, Systems Manager, EventBridge
+
+<details>
+<summary><b>Production Policy Example</b></summary>
 
 ```json
 {
-  "context": {
-    "project_name": "data-analyst",
-    "vpc_id": "vpc-xxxxxxxxxxxxxxxxx",
-    "private_egress_subnet_1": "subnet-xxxxxxxxxxxxxxxxx",
-    "private_egress_subnet_2": "subnet-xxxxxxxxxxxxxxxxx", 
-    "private_isolated_subnet_1": "subnet-xxxxxxxxxxxxxxxxx",
-    "private_isolated_subnet_2": "subnet-xxxxxxxxxxxxxxxxx",
-    "db_password": "your-secure-password",
-    "api_db_host": "your-database-endpoint.region.rds.amazonaws.com",
-    "api_db_type": "postgresql"
-    ...
-  }
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:*",
+                "iam:*",
+                "ec2:*",
+                "rds:*",
+                "lambda:*",
+                "ecs:*",
+                "elasticloadbalancing:*",
+                "s3:*",
+                "dynamodb:*",
+                "apigateway:*",
+                "logs:*",
+                "athena:*",
+                "glue:*",
+                "states:*",
+                "ssm:*",
+                "application-autoscaling:*",
+                "bedrock:*",
+                "events:*",
+                "sts:GetCallerIdentity"
+            ],
+            "Resource": "*"
+        }
+    ]
 }
 ```
 
-### 2. Deploy
+</details>
+
+#### Verify Access
 ```bash
-git clone <repository>
-cd DataAnalyst
-./deploy.sh deploy
+# Test key service access
+aws cloudformation list-stacks --region us-east-1
+aws ec2 describe-vpcs --region us-east-1  
+aws bedrock list-foundation-models --region us-east-1
 ```
 
-### 3. Access
+### Step 3: Project Setup
+
+#### Clone Repository
 ```bash
-./ssh_tunnel.sh
-# Open browser: http://localhost:8080
+git clone <repository-url>
+cd sample-data-analyst
+
+# Install CDK dependencies
+cd cdk && pip install -r requirements.txt && cd ..
 ```
 
-### Configuration Reference
+### Step 4: Configuration
 
-<details>
-<summary><b>Complete Configuration Options</b></summary>
+> [!IMPORTANT]
+> - All REQUIRED fields must be provided
+> - VPC and subnets must already exist
+> - Metadata S3 bucket must pre-exist for S3 database types
+> - Database credentials must be valid and accessible
+> - Bedrock models must be enabled in your region
 
-**Core Infrastructure:**
+#### Edit Configuration File
+
+Edit values in `cdk/cdk.json`:
+
+#### Configuration Reference
+
+**REQUIRED Core Infrastructure:**
 - `project_name`: Base name for all AWS resources
-- `vpc_id`: Existing VPC ID where resources will be deployed
-- `private_egress_subnet_1/2`: Private subnets with NAT Gateway (for Lambda/ECS)
-- `private_isolated_subnet_1/2`: Private isolated subnets (for RDS database)
+- `vpc_id`: Existing VPC ID (REQUIRED)
+- `private_egress_subnet_1/2`: Private subnets with NAT Gateway (REQUIRED)
+- `private_isolated_subnet_1/2`: Private isolated subnets for RDS (REQUIRED)
+- `security_group_id`: Security group with proper rules (REQUIRED)
 
-**Database Configuration:**
-- `db_username`: PostgreSQL master username (default: "postgres")
-- `db_password`: PostgreSQL master password
-- `db_name`: PostgreSQL database name (default: "postgres")
+**REQUIRED Database Configuration:**
+- `db_username`: PostgreSQL master username (REQUIRED)
+- `db_name`: PostgreSQL database name (REQUIRED)  
+- `db_password`: PostgreSQL master password (REQUIRED)
+- `api_db_host`: External database hostname (REQUIRED)
+- `api_db_port`: External database port (REQUIRED)
+- `api_db_name`: External database name (REQUIRED)
+- `api_db_user`: External database username (REQUIRED)
+- `api_db_password`: External database password (REQUIRED)
+- `api_db_type`: Database type - `postgresql`, `redshift`, or `s3` (REQUIRED)
 
-**External Database (for API queries):**
-- `api_db_host`: External database hostname
-- `api_db_port`: External database port (5432 for PostgreSQL, 5439 for Redshift)
-- `api_db_name`: External database name
-- `api_db_user`: External database username
-- `api_db_password`: External database password
-- `api_db_type`: Database type (`postgresql`, `redshift`, `s3`)
-
-**AI Model Configuration:**
-- `sql_model_id`: Bedrock model for SQL generation (default: Claude Sonnet)
-- `chat_model_id`: Bedrock model for chat responses (default: Claude Haiku)
-- `embedding_model_id`: Bedrock model for vector embeddings (default: Cohere)
-- `approach`: AI approach method (`few_shot`, `zero_shot`)
-
-**Metadata Configuration (for S3 databases):**
-- `metadata_s3_bucket`: S3 bucket containing data and schema files
+**OPTIONAL Configuration:**
+- `sql_model_id`: Bedrock model for SQL generation
+- `chat_model_id`: Bedrock model for chat responses  
+- `embedding_model_id`: Bedrock model for vector embeddings
+- `approach`: Examples selection method (`few_shot` or `zero_shot`)
+- `metadata_s3_bucket`: S3 bucket for metadata (must pre-exist)
 - `metadata_is_meta`: Enable metadata-driven schema discovery
 - `metadata_table_meta`: S3 key for table metadata Excel file
 - `metadata_column_meta`: S3 key for column metadata Excel file
 
+#### Validate Configuration
+```bash
+# Verify VPC exists
+aws ec2 describe-vpcs --vpc-ids $(grep vpc_id cdk/cdk.json | cut -d'"' -f4)
+
+# Check Bedrock model access
+aws bedrock list-foundation-models --region us-east-1 | grep -E "(claude-3|cohere)"
+```
+
+### Step 5: Deploy
+
+> [!NOTE]
+> Deployment typically takes 15-30 minutes. Monitor progress in the AWS CloudFormation console.
+
+#### Deploy Infrastructure
+```bash
+# Deploy all stacks (this will take 15-30 minutes)
+export AWS_PROFILE=data-analyst
+./deploy.sh deploy
+```
+
+#### Verify Deployment
+```bash
+# Check stack status
+export AWS_PROFILE=data-analyst
+./deploy.sh status
+```
+
+### Step 6: Access the Application
+
+#### Create Secure Tunnel
+```bash
+# Create SSH tunnel to bastion host (includes key setup)
+./ssh_tunnel.sh
+
+# The script will:
+# 1. Create temporary EC2 Instance Connect key pair
+# 2. Push public key to bastion host
+# 3. Create SSH tunnel on port 8080
+# 4. Display access instructions
+```
+
+#### Access Web Interface
+```bash
+# Open your browser to:
+http://localhost:8080
+```
+
+### Step 7: Verify & Test
+
+#### Test Data Analyst Functionality
+1. **Access Streamlit Interface**: Verify the web interface loads properly
+2. **Test Natural Language Query**: Try "Show me the first 10 rows from any table"
+3. **Check Database Connection**: Verify connection to your configured database
+4. **Monitor Logs**: Check CloudWatch logs for any errors
+
+```bash
+# View real-time logs
+./view_logs.sh data-analyst
+./view_logs.sh querybot
+./view_logs.sh streamlit
+```
+
+## 🚨 Troubleshooting
+
+> [!TIP]
+> Most deployment issues are related to permissions or VPC configuration. Check these first.
+
+<details>
+<summary><b>Permission Denied Errors</b></summary>
+
+**Symptoms**: CloudFormation deployment fails with permission errors
+
+**Solutions**:
+```bash
+# Check your AWS identity
+aws sts get-caller-identity
+
+# Verify required permissions (see Step 2)
+# Contact your AWS administrator if permissions are insufficient
+```
+
 </details>
 
+<details>
+<summary><b>VPC/Subnet Issues</b></summary>
+
+**Symptoms**: Stack creation fails with subnet/VPC errors
+
+**Solutions**:
+```bash
+# Verify VPC exists
+aws ec2 describe-vpcs --vpc-ids your-vpc-id
+
+# Check subnet configuration
+aws ec2 describe-subnets --filters "Name=vpc-id,Values=your-vpc-id"
+
+# Ensure subnets are in different AZs
+aws ec2 describe-availability-zones --region your-region
+```
+
+</details>
+
+<details>
+<summary><b>Bedrock Model Access</b></summary>
+
+**Symptoms**: Lambda functions fail with Bedrock access errors
+
+**Solutions**:
+> [!CAUTION]
+> Bedrock models require explicit access approval in the AWS Console.
+
+```bash
+# Check model availability in your region
+aws bedrock list-foundation-models --region your-region
+
+# Enable Bedrock models in AWS Console:
+# 1. Go to Amazon Bedrock console
+# 2. Navigate to Model access
+# 3. Request access to required models (Claude, Cohere)
+```
+
+</details>
+
+<details>
+<summary><b>Docker Issues</b></summary>
+
+**Symptoms**: Layer building fails or ECS deployment issues
+
+**Solutions**:
+```bash
+# Verify Docker is running
+docker info
+
+# For Mac users, ensure Docker Desktop is running
+# For Linux users, start Docker service:
+sudo systemctl start docker
+
+# Test Docker with a simple command
+docker run hello-world
+```
+
+</details>
+
+## 🎯 Next Steps
+
+After successful deployment:
+
+1. **Configure Your Data Source**: Update database connection settings
+2. **Upload Sample Data**: Use the S3-Athena flow for CSV data
+3. **Test Query Examples**: Try various natural language queries
+4. **Monitor Performance**: Check CloudWatch dashboards
+5. **Customize Configuration**: Adjust AI models and parameters as needed
+
 ## 📊 Supported Database Types
+
+> [!NOTE]
+> The platform supports three database types. Choose the one that matches your data infrastructure.
 
 ### PostgreSQL
 ```json
@@ -149,13 +406,17 @@ cd DataAnalyst
 }
 ```
 
-**S3-Athena Flow:**
-- **S3 Input**: Upload a ZIP file containing nested folders of CSV files
-- **Automatic Processing**: System extracts ZIP and organizes data automatically
-- **Schema Generation**: Automatically creates schema files from CSV structure
-- **Athena Integration**: Uses AWS Glue Catalog for query execution
+> [!TIP]
+> For S3-Athena, the metadata S3 bucket must pre-exist before deployment.
 
-**Input ZIP Structure:**
+**S3-Athena Workflow:**
+1. **Prepare ZIP**: Create ZIP file with folders containing CSV files
+2. **Upload via UI**: Use Streamlit interface to upload ZIP file
+3. **Automatic Processing**: System extracts, validates, and organizes data
+4. **Schema Generation**: Automatically creates database schema from CSV headers
+5. **Ready to Query**: Start asking questions about your data immediately
+
+**Example ZIP Structure:**
 ```
 your_database.zip
 ├── customers/
@@ -168,13 +429,6 @@ your_database.zip
     ├── sales_2023.csv
     └── sales_2024.csv
 ```
-
-**Upload Process:**
-1. **Prepare ZIP**: Create ZIP file with folders containing CSV files
-2. **Upload via UI**: Use Streamlit interface to upload ZIP file
-3. **Automatic Processing**: System extracts, validates, and organizes data
-4. **Schema Generation**: Automatically creates database schema from CSV headers
-5. **Ready to Query**: Start asking questions about your data immediately
 
 ## 📊 Architecture Flow
 
@@ -269,8 +523,11 @@ Vector Database (PostgreSQL + pgvector):
 ### Security Architecture
 - **No Public IPs**: All components in private/isolated subnets
 - **Bastion Access**: SSM Session Manager (no SSH keys required)
-- **Network Security**: Security groups with minimal required access
-- **Data Encryption**: In-transit and at-rest encryption for all data flows
+- **EC2 Instance Connect**: Temporary SSH key injection for tunneling
+- **VPC Endpoints**: Private connectivity to AWS services
+- **API Keys**: Secured API Gateway access
+- **IAM Roles**: Least privilege access
+- **Security Groups**: Restrictive network access controls
 
 ## 🔧 Management Commands
 
@@ -340,7 +597,7 @@ DataAnalyst/
 │   │       │   ├── executor.py   # SQL execution helpers
 │   │       │   └── evaluator.py  # Query evaluation
 │   │       └── support/          # Support utilities
-│   └── tools/                    # Utility handlers
+│   └── tools/                    # Step functions for Athena DB
 ├── layers/                       # Custom Lambda layers
 │   ├── data-analyst-requirements.txt
 │   ├── querybot-requirements.txt
