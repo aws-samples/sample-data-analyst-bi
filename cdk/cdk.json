@@ -71,7 +71,7 @@
     "embedding_model_id": "cohere.embed-english-v3",
     "approach": "few_shot",
     "api_db_host": "",
-    "api_db_port": 5439,
+    "api_db_port": 5432,
     "api_db_name": "student_club",
     "api_db_user": "demo",
     "api_db_password": "Pass123!",

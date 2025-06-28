@@ -615,6 +615,7 @@ if __name__ == "__main__":
 
 
     if user_input:
+        ## Set the plot data to None
         if 'current_plot_image' in st.session_state:
             st.session_state.current_plot_image = None
         auto_scroll_to_bottom()

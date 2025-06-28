@@ -42,14 +42,13 @@ class FrontendStack(Stack):
                  private_isolated_subnet_2: str = None,
                  security_group: str = None,
                  backend_vpc=None,  # VPC reference from backend stack
-                 api_endpoint: str = None,
-                 api_key_parameter_name: str = None,
-                 db_host: str = None,
-                 db_port: str = "5432",
-                 db_name: str = "data_analyst_db",
-                 db_username: str = "admin",
-                 db_password: str = None,
-                 db_type: str = "redshift",
+                 # API Database configuration (external database for data analysis)
+                 api_db_host: str = "",
+                 api_db_port: int = 5432,
+                 api_db_name: str = "",
+                 api_db_user: str = "",
+                 api_db_password: str = "",
+                 api_db_type: str = "",
                  metadata_s3_bucket: str = None,
                  metadata_is_meta: bool = True,
                  metadata_table_meta: str = None,
@@ -75,14 +74,14 @@ class FrontendStack(Stack):
         self.private_isolated_subnet_1 = private_isolated_subnet_1
         self.private_isolated_subnet_2 = private_isolated_subnet_2
         
-        # Store database configuration
-        self.db_host = db_host
-        self.db_port = db_port
-        self.db_name = db_name
-        self.db_username = db_username
-        self.db_password = db_password
-        self.db_type = db_type
-        
+        # Store API database configuration (external database for data analysis)
+        self.api_db_host = api_db_host
+        self.api_db_port = api_db_port
+        self.api_db_name = api_db_name
+        self.api_db_user = api_db_user
+        self.api_db_password = api_db_password
+        self.api_db_type = api_db_type
+
         # Store metadata configuration
         self.metadata_s3_bucket = metadata_s3_bucket
         self.metadata_is_meta = metadata_is_meta
@@ -448,12 +447,13 @@ class FrontendStack(Stack):
             "API_KEY_PARAMETER_NAME": f"/{self.project_name}/api/key",
             "API_KEY_ID_PARAMETER_NAME": f"/{self.project_name}/api-key-id",
             "PROJECT_NAME": self.project_name,
-            "DB_HOST": self.db_host or self.backend_stack.postgres_db.instance_endpoint.hostname,
-            "DB_PORT": str(self.db_port) if self.db_port else "5432",
-            "DB_NAME": self.db_name,
-            "DB_USERNAME": self.db_username,
-            "DB_PASSWORD": self.db_password,
-            "API_DB_TYPE": self.db_type,
+            # API Database configuration (external database for data analysis)
+            "API_DB_HOST": self.api_db_host,
+            "API_DB_PORT": str(self.api_db_port) if self.api_db_port else "",
+            "API_DB_NAME": self.api_db_name,
+            "API_DB_USER": self.api_db_user,
+            "API_DB_PASSWORD": self.api_db_password,
+            "API_DB_TYPE": self.api_db_type,
             "S3_BUCKET_NAME": self.backend_stack.application_bucket.bucket_name,
             "AWS_DEFAULT_REGION": self.region,
             # Metadata configuration
