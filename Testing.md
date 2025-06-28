@@ -14,8 +14,8 @@ Configure generation behavior through several parameters:
 ### Parameters set in cdk
 
 Parameters influencing the SQL generation quality and also the response time which are to be set in the cdk.json
-1. Model selection -  Test with different generation models to identify the right model for the usease. The bigger the model, the accuracy of the SQL generated may improve, however it may also increase the response time.
-2. Approach -  Strat with zero_shot (set approach = "zero_shot") to establish a baseline and then try eewshot startegy (set set approach = "few_shot"). With fewshot strategy, the size of the input prompt would increase, which may impact the response time
+1. **Model selection** -  Test with different generation models to identify the right model for the usease. The bigger the model, the accuracy of the SQL generated may improve, however it may also increase the response time.
+2. **Approach** -  Strat with zero_shot (set approach = "zero_shot") to establish a baseline and then try eewshot startegy (set set approach = "few_shot"). With fewshot strategy, the size of the input prompt would increase, which may impact the response time
 3. If you use fewshot strategy, then test with different embedding models(set the paremeter embedding_model_id) 
 4. Metadata is a key factor which determines the accuracy of the SQL generated. Set metadata_is_meta = true and provide the correct s3 keys where the metadata files are stored. Adding metadata to the prompt will provide the the relevant context regarding business nuances and help in improving the accuracy of SQL generated. At the same time, the  the sze  the prompt size will increase and may impact the response time
 
@@ -38,13 +38,13 @@ While Anthropic Claude 3.7 can generate SQL accurately relatively to Anthropic C
 ### Parameters set in UI config
 There are some parameters which can be set in the following path  - streamlit/UI/config.py
 
-1. Table Filter - This parameter is used to determine whether a LLM is to be invoked to select the relevant tables for a question or use all tables from the schema for generating the SQL. If all tables are to be selected, then the LLM is not invoked, resulting in improving the response time. Valid values - ["all", "relevant"]
+1. **Table Filter** - This parameter is used to determine whether a LLM is to be invoked to select the relevant tables for a question or use all tables from the schema for generating the SQL. If all tables are to be selected, then the LLM is not invoked, resulting in improving the response time. Valid values - ["all", "relevant"]
 - `table_selection`: "all" 
 
-2. Plot model -  The LLM used to generate a python query to generate plots can be set in the config.py
+2. **Plot model** -  The LLM used to generate a python query to generate plots can be set in the config.py
 - `plot_model_id`: "anthropic.claude-3-sonnet-20240229-v1:0"
 
-3. Caching - The system uses a approval based caching mechanism where the SQL if approved by the user, then the SQL and the vector embedding of the question are transferred to the cache. In the next run , if the same question is asked by the user, then the SQL is retrieved rom the cache, executed in the database and results returned to the user. In this case, no LLM calls are made, thus improving the response time. The system compares the vector embeddings of the question asked by the user with the vector embeddings of the question stored in the cache and if the similarity score is greater than equal to the threshold, the SQL is retrieved. This approach of caching a question and SQL also helps to automate the creation of fewshot examples in the vector db. Set the threshold parameter
+3. **Caching** - The system uses a approval based caching mechanism where the SQL if approved by the user, then the SQL and the vector embedding of the question are transferred to the cache. In the next run , if the same question is asked by the user, then the SQL is retrieved rom the cache, executed in the database and results returned to the user. In this case, no LLM calls are made, thus improving the response time. The system compares the vector embeddings of the question asked by the user with the vector embeddings of the question stored in the cache and if the similarity score is greater than equal to the threshold, the SQL is retrieved. This approach of caching a question and SQL also helps to automate the creation of fewshot examples in the vector db. Set the threshold parameter
 - `cache_thresh`: 0.95 
 
 ```bash
@@ -55,13 +55,13 @@ N.B. The caching of SQL based on approval from user is currently supported only 
 
 The data-analyst lambda function receives user questions and classifies them into pre-defined entity types. It retrieves database schema information if not provided, then invokes the querybot lambda to generate appropriate SQL for the query. After executing the SQL against the database, it leverages an LLM to transform the technical results into natural language responses that address the user's question. Based on the identified intent type, it may further utilize an LLM to generate Python visualization code to complement the textual response. 
 
-1. Intent Identification - The system classifies user questions into one of three distinct intent categories:
+1. **Intent Identification** - The system classifies user questions into one of three distinct intent categories:
     (A). Greetings Intent - General salutations or conversational openers
     (B). SQL-based Intent - Queries requiring database operations
     (C). Visualization Intent - Requests for graphical data representation
     Intent classification is performed within the data-analyst lambda function using an LLM (Large Language Model) call with a specialized prompt. The current system architecture supports processing questions with a single intent type only. Multi-intent queries are not yet supported.
 
-Prompt Path -  data-analyst/scripts/query_db/prompt_config_clv3.py
+- `Prompt Path -  data-analyst/scripts/query_db/prompt_config_clv3.py`
 
 ```yaml
 intent_prompt:
@@ -121,9 +121,9 @@ Important Rules:
 4. Always maintain the exact tag structure
 ```
 
-2. Plot generation - When a question is received that requests a visual representation (identifiable by terms such as "barchart," "linechart," etc.), our system follows a multi-step process. First, the intent identification mechanism classifies the question as having a visualization intent. Next, the SQL generation component creates an appropriate SQL query, which is then executed to retrieve the necessary data from the database. Subsequently, the system calls the generate_plots visualization method. This method utilizes a specific prompt to invoke a Large Language Model (LLM), which produces Python code. This code is then executed to generate the requested visual representation.
+2. **Plot generation** - When a question is received that requests a visual representation (identifiable by terms such as "barchart," "linechart," etc.), our system follows a multi-step process. First, the intent identification mechanism classifies the question as having a visualization intent. Next, the SQL generation component creates an appropriate SQL query, which is then executed to retrieve the necessary data from the database. Subsequently, the system calls the generate_plots visualization method. This method utilizes a specific prompt to invoke a Large Language Model (LLM), which produces Python code. This code is then executed to generate the requested visual representation.
 
-Prompt Path -  data-analyst/scripts/query_db/prompt_config_clv3.py
+- `Prompt Path -  data-analyst/scripts/query_db/prompt_config_clv3.py`
 
 ```yaml
 plotting_tempv3:
@@ -182,9 +182,9 @@ N.B. For invoking Bedrock LLMs used in the data-analyst lambda function from a s
 
 The Query Bot Lambda function, invoked by the Data Analyst Lambda, loads metadata from S3 and incorporates it into the schema. It then leverages LLMs to analyze user questions and identify only the relevant tables(this step is optional and contolled by the 'table_selection' parameter ) needed for answering specific queries. Finally, it invokes another LLM to generate the appropriate SQL query based on the user's question and the filtered schema information.
 
-1. SQL generation  - The querybot lambda is responsible for the generation of SQL by invoking LLM configured in the cdk. The prompt templates are available in the querybot -> scripts -> prompts.py. System prompts and sql prompts for both zeroshot and fewshot can be customized dependingon the usecase
+1. **SQL generation**  - The querybot lambda is responsible for the generation of SQL by invoking LLM configured in the cdk. The prompt templates are available in the querybot -> scripts -> prompts.py. System prompts and sql prompts for both zeroshot and fewshot can be customized dependingon the usecase
 
-Prompt Path - querybot/scripts/prompts.py
+- `Prompt Path - querybot/scripts/prompts.py`
   
 System prompt - 
  ```yaml
@@ -248,9 +248,9 @@ generate a SQL statement for the question within the <question></question> tags
 </question>
 ```
 
-2. Model hyperparameters - The LLM's hyperparameters can also influence the accuracy of SQL. Hyperparameter configuration for some models are show below:
+2. **Model hyperparameters** - The LLM's hyperparameters can also influence the accuracy of SQL. Hyperparameter configuration for some models are show below:
 
-Path - querybot/scripts/config.py
+- `Path - querybot/scripts/config.py`
 
 ```yaml
 LLM_CONF:
@@ -274,9 +274,9 @@ LLM_CONF:
     }
 ```
 
-3. Retrieval score threshold -  In the fewshot setting, the system will perform a semantic similarity match between the embeddings of the question asked by the user with that of the questions available in the vector store. Relevant examples whose scores exceed the threshold are selected to be added in the prompt. 
+3. **Retrieval score threshold** -  In the fewshot setting, the system will perform a semantic similarity match between the embeddings of the question asked by the user with that of the questions available in the vector store. Relevant examples whose scores exceed the threshold are selected to be added in the prompt. 
 
-Path - querybot/scripts/config.py
+- `Path - querybot/scripts/config.py`
 
 - `AOSS_RELEVANCE_THRESHOLD`: 0.75
 
