@@ -81,7 +81,7 @@ class FrontendStack(Stack):
         self.api_db_user = api_db_user
         self.api_db_password = api_db_password
         self.api_db_type = api_db_type
-
+        
         # Store metadata configuration
         self.metadata_s3_bucket = metadata_s3_bucket
         self.metadata_is_meta = metadata_is_meta
