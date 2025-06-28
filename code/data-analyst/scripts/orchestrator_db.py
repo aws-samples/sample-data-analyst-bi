@@ -233,9 +233,6 @@ def generate_answers_db(query, query_type, messages, schema_extractor, schema_st
     if q_mod_prompt is None:
         q_mod_prompt = question_mod_prompt
 
-    # model_id = "anthropic.claude-3-sonnet-20240229-v1:0"     
-    # anthropic.claude-3-5-sonnet-20240620-v1:0
-    # anthropic.claude-3-sonnet-20240229-v1:0
     try:
         # Question Classification
         if query_type == "aggregation":
