@@ -150,18 +150,18 @@ API_KEY = get_api_key_from_parameter_store()
 
 # API Database Configuration (for the data analysis queries sent to the API)
 API_DB_CONFIG = {
-    "host": os.getenv("API_DB_HOST", "database-1.cx4aggus4yac.us-east-1.rds.amazonaws.com"),
-    "port": int(os.getenv("API_DB_PORT", "5432")),
-    "database": os.getenv("API_DB_NAME", "student_club"),
-    "user": os.getenv("API_DB_USER", "postgres"),
-    "password": os.getenv("API_DB_PASSWORD", "<.i?_0iJ_!MbM]u.HfPEmn)F<e!H"),
-    "type": os.getenv("API_DB_TYPE", "postgresql")
+    "host": os.getenv("API_DB_HOST", ""),
+    "port": int(os.getenv("API_DB_PORT", "")),
+    "database": os.getenv("API_DB_NAME", ""),
+    "user": os.getenv("API_DB_USER", ""),
+    "password": os.getenv("API_DB_PASSWORD", ""),
+    "type": os.getenv("API_DB_TYPE", "")
 }
 
 # Metadata Configuration - Use environment variables or fallback to hardcoded values
 METADATA_CONFIG = {
-    "s3_bucket_name": os.getenv("METADATA_S3_BUCKET", "data-analyst-v2-bucket-203918850931"),
-    "is_meta": os.getenv("METADATA_IS_META", "False").lower() == "False",
+    "s3_bucket_name": os.getenv("METADATA_S3_BUCKET", ""),
+    "is_meta": os.getenv("METADATA_IS_META", "true").lower() == "true",
     "table_meta": os.getenv("METADATA_TABLE_META", None),
     "column_meta": os.getenv("METADATA_COLUMN_META", None),
     "metric_meta": os.getenv("METADATA_METRIC_META", None),
@@ -213,6 +213,8 @@ model_id = os.getenv("SQL_MODEL_ID", "us.anthropic.claude-3-5-sonnet-20241022-v2
 chat_model_id = os.getenv("CHAT_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
 
 expl_model_id = os.getenv("EXPL_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
+
+plot_model_id = os.getenv("PLOT_MODEL_ID", "anthropic.claude-3-sonnet-20240229-v1:0")
 
 # Embedding Model ID for vector operations
 embedding_model_id = os.getenv("EMBEDDING_MODEL_ID", "amazon.titan-embed-text-v2:0")
