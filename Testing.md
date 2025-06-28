@@ -5,6 +5,23 @@ Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 Effective extraction of insights from relational databases depends fundamentally on how efficiently a model translates natural language questions into SQL or Python queries for visualization. Equally important is improving response times for frequently asked questions.
 This guide outlines various configuration options and techniques to customize code generation to meet your specific requirements, ensuring both accuracy and performance when interfacing with your database systems.
 
+## Question types
+
+The system supports the following types of questions - 
+1. **Direct Retreival** - 
+    - ***Purpose***: Answers factual data questions (e.g., "How many products were sold in the last quarter?")
+    - ***Process***: The system generates and executes SQL queries, then returns results in both tabular and natural language formats
+    - ***UI Setting***: Select "aggregation" in the Query Type dropdown (this is the default selection)
+
+2. **Retrieval and Visualization** - 
+    - ***Purpose***: Creates visual representations of retrieved data(e.g. "Show the bar charts of the sales of the product)
+    - ***Process***: Follows the direct retrieval workflow, then additionally generates Python code to create visualizations of the results
+    - ***UI Setting***: Select "aggregation" in the Query Type dropdown
+23. **Retrieval and Reasoning** 
+    - ***Purpose***: Provides analytical insights based on retrieved data(e.g. what are the possible factors driving the sales of the product)
+    - ***Process***: A. Breaks down the question based on schema context and metadata , B. Generates and executes SQL to retrieve relevant data, C. Uses an LLM with specialized prompting to generate quantitatively supported explanations
+    - ***UI Setting***: Select "reasoning" in the Query Type dropdown
+
 
 ## Generation Configuration
 
