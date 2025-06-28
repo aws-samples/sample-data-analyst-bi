@@ -9,7 +9,7 @@ import boto3
 import pandas as pd
 import base64
 from streamlit.components.v1 import html
-from config import ACTIVE_DB_CONFIG, metadata, model_id, chat_model_id, expl_model_id, embedding_model_id, sql_gen_approach, chat_save, context_hist_size, CHAT_DIR_LOCAL, CHAT_S3, METADATA_CONFIG, API_URL, API_KEY, QUERY_TYPES, cache_thresh, table_selection
+from config import ACTIVE_DB_CONFIG, metadata, model_id, chat_model_id, expl_model_id, plot_model_id, embedding_model_id, sql_gen_approach, chat_save, context_hist_size, CHAT_DIR_LOCAL, CHAT_S3, METADATA_CONFIG, API_URL, API_KEY, QUERY_TYPES, cache_thresh, table_selection
 from enum import Enum
 import uuid
 import logging
@@ -343,6 +343,7 @@ def send_api_request(user_query: str, query_type: str, user_persona: str,
         "chat_model_id": chat_model_id,
         "embedding_model_id": embedding_model_id,
         "expl_model_id": expl_model_id,
+        "plot_model_id": plot_model_id,
         "approach": sql_gen_approach,
         "table_selection": table_selection,
         "query_type": query_type,
@@ -366,6 +367,8 @@ def send_api_request(user_query: str, query_type: str, user_persona: str,
         "messages": messages,
         "session": session_value
     }
+
+
 
     gmt_time = datetime.now(timezone.utc).isoformat()
     print(f"{gmt_time}\t{st.session_state.persona}\t\t{user_query}")
@@ -564,6 +567,13 @@ if __name__ == "__main__":
         plot_container = st.container(border=True, height=TOP_ROW_HEIGHT)
         if not st.session_state.show_plot_container:
             plot_container = st.empty()
+        else:
+            with plot_container:
+                # Display the stored plot image if it exists
+                if 'current_plot_image' in st.session_state and st.session_state.current_plot_image is not None:
+                    st.image(st.session_state.current_plot_image, use_column_width=True)
+                else:
+                    st.write("No visualization available.")
 
     # Row 2: Chat History (full width)
     st.subheader("💬 Chat History")
@@ -605,6 +615,9 @@ if __name__ == "__main__":
 
 
     if user_input:
+        ## Set the plot data to None
+        if 'current_plot_image' in st.session_state:
+            st.session_state.current_plot_image = None
         auto_scroll_to_bottom()
         st.session_state.current_question = user_input
         # Display user message
@@ -620,6 +633,7 @@ if __name__ == "__main__":
             messages=st.session_state['chat_history_sql']
         )
         if response:
+            # Clear the plot image if this is a new query (not during approval flow)
             # Update info message
             if 'cached_flag' in response and response['cached_flag']:
                 st.session_state.cached_flag = response['cached_flag']
@@ -646,30 +660,56 @@ if __name__ == "__main__":
             if 'plot' in response:
                 st.session_state.show_plot_container = True
                 plot_data = response.get('plot', '')
-                python_code = response.get('python_code', '')
+                sql = response.get('sql_query', '')
                 answer = response.get('answer', '')
-                
+                print("sql inside plot", sql)
+
+                # Store the plot data in session state so it persists after rerun
+                if plot_data:
+                    try:
+                        # Decode and store the plot image in session state
+                        st.session_state.current_plot_image = base64.b64decode(plot_data)
+                    except Exception as e:
+                        st.error(f"Error decoding plot: {str(e)}")
+                        st.session_state.current_plot_image = None
                 with chat_container:
                     with st.chat_message("assistant"):
                         if answer:
                             st.text(answer)
-                        if python_code:
-                            st.code(python_code, language='python')
+                        if sql:
+                            st.code(sql, language='sql')
                     chat_content = []
                     if answer:
                         chat_content.append(answer)
-                    if python_code:
-                        chat_content.append(python_code)  # Fixed: was using 'sql' variable which is undefined here
+                    if sql:
+                        chat_content.append(sql)  # Fixed: was using 'sql' variable which is undefined here
+                    add_to_chat_history(question=None, answer="\n".join(chat_content), table=None)
                     logger.info(f"💬 Current Question - {st.session_state.current_question}/n Current Response - {chat_content}")
-                with plot_container:
+                if 'dataframe' in response:
                     try:
-                        plot_image = base64.b64decode(plot_data)
-                        st.image(plot_image, use_column_width=True)
+                        df_data = json.loads(response['dataframe'])
+                        df = pd.DataFrame(df_data)
+                        
+                        for col in df.columns:
+                            if df[col].dtype == 'object':
+                                try:
+                                    df[col] = pd.to_datetime(df[col])
+                                except:
+                                    pass
+                        
+                        # Store in session state
+                        st.session_state.current_dataframe = df
+                        
                     except Exception as e:
-                        st.error(f"Error displaying plot: {str(e)}")
+                        with chat_container:
+                            st.error(f"Error processing dataframe: {str(e)}")
+                st.rerun()
 
             # Handle SQL Query
             elif 'sql_query' in response:
+                # Clear any existing plots since this is not a plot query
+                if 'current_plot_image' in st.session_state:
+                    st.session_state.current_plot_image = None
                 answer = response.get('answer', '')
                 sql = response.get('sql_query', '')
                 st.session_state.current_sql = sql
@@ -679,7 +719,6 @@ if __name__ == "__main__":
                     st.session_state.pending_approval = False
                 st.session_state.current_user_input = user_input  # Store the current user input
                 st.info(f"cache status: {st.session_state.cached_flag}", icon="ℹ️")
-                
                 
                 with chat_container:
                     with st.chat_message("assistant"):
@@ -723,6 +762,8 @@ if __name__ == "__main__":
                 
             # Handle Generic Query
             else:
+                if 'current_plot_image' in st.session_state:
+                    st.session_state.current_plot_image = None
                 answer = response.get('response', 'Sorry, there was an error processing your request. Please rephrase your question or ask another query')
                 st.session_state['text_sql_status'].append({"question": user_input, "sql": ""})
                 with chat_container:
@@ -747,13 +788,12 @@ if __name__ == "__main__":
                         st.session_state.current_dataframe = df
                         
                         # Rerun to update the data view
-                        st.rerun()
                                 
                     except Exception as e:
                         with chat_container:
                             st.error(f"Error processing dataframe: {str(e)}")
                         if 'dataframe_error' in response:
                             st.error(f"Server error: {response['dataframe_error']}")
-    
+                st.rerun()
     # # Save chat history
     # save_chat_history(st.session_state['text_sql_status'], st.session_state.uid)

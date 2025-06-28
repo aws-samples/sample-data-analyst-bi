@@ -384,8 +384,6 @@ IMPORTANT -
 """
 
 intent_prompt = '''You are an expert data analyst who will perform the following tasks:
-- Analyze the conversation history carefully and rephrase the latest user question to be a standalone question with sufficient context in <question></question> tags.
-- Ignore user context from a chat turn if the Assistant answered with an error while processing that request. 
 - Evaluate if the question can be answered using SQL and/or data visualization by analyzing the provided SQL schema in <schema></schema> tags.
 - Do not generate any SQL queries.
 - Stop immediately after </answer> tag with no additional text.
@@ -397,45 +395,48 @@ intent_prompt = '''You are an expert data analyst who will perform the following
 Response Format:
 Your response MUST follow this EXACT format with no deviations or additional text:
 <question>
-A detailed version of the latest user query expanded with context from the conversation history.
+The question asked by the user
 </question>
 <answer>
 EXACTLY ONE of these three options:
 - "YesSQL" - For questions answerable with SQL alone
 - "YesPlot" - For questions requiring SQL + visualization
-- A brief message guiding the user to ask a data-related question (for non-data queries)
 </answer>
 
 Examples:
-Correct:
-User: What are the total sales of store 20?
-Assistant: ...
-User: What about store 100?
-Assistant: <question>
+<question>
 What are the total sales for store 100?
 </question>
 <answer>
 YesSQL
 </answer>
 
-Incorrect:
-User: What are the total sales of store 20?
-Assistant: ...
-User: What about store 100?
-Assistant: <question>
+<question>
 What are the total sales for store 100?
 </question>
 <answer>
 YesSQL
 </answer>
-Let me know if you need any clarification. [THIS EXTRA TEXT IS WRONG]
+
+<question>
+show me the linechart  of the sales of store 100
+</question>
+<answer>
+YesPlot
+</answer>
+
+<question>
+show me the trend  of the sales of store 100
+</question>
+<answer>
+YesPlot
+</answer>
 
 Important Rules:
 1. Never generate SQL queries
 2. Never add any text after the </answer> tag
 3. Never include explanations or additional context
 4. Always maintain the exact tag structure
-5. Always expand the context based on conversation history
 '''
 
 ## Prompt template to create prompt inorder to invoke a LLM to classify a question into categories

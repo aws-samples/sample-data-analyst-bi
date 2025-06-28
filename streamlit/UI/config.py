@@ -206,13 +206,17 @@ QUERY_TYPES = ["aggregation", "reasoning"]
 # Legacy metadata for SQL gen (use METADATA_CONFIG instead)
 metadata = METADATA_CONFIG
 
-# Model_ID for SQL gen
+# Model_ID for generating SQL
 model_id = os.getenv("SQL_MODEL_ID", "us.anthropic.claude-3-5-sonnet-20241022-v2:0")
 
-# Chat Model ID for conversational responses
+#  Model ID for conversational responses
 chat_model_id = os.getenv("CHAT_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
 
+# Model ID for converting tabular data to natural language responses
 expl_model_id = os.getenv("EXPL_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
+
+# Model ID for generating python query for plotting
+plot_model_id = os.getenv("PLOT_MODEL_ID", "anthropic.claude-3-sonnet-20240229-v1:0")
 
 # Embedding Model ID for vector operations
 embedding_model_id = os.getenv("EMBEDDING_MODEL_ID", "amazon.titan-embed-text-v2:0")
@@ -223,7 +227,8 @@ sql_gen_approach = os.getenv("APPROACH", "few_shot")  # few_shot, zero_shot, aut
 # Cache threshold for selecting entries from a cache database
 cache_thresh = os.getenv("CACHE_THRESHOLD", 0.95)  # floating point values (0,1)
 
-table_selection = "all" ## values = ["all", "relevant"] determines whether tables are to be filtered based on a question, Default - "all" means all tables are to be used
+# Determines whether tables are to be filtered based on a question,
+table_selection = "all" ## values = ["all", "relevant"]  Default - "all" means all tables are to be used
 
 # Whether the chat history is saved in 'S3' or 'local'
 chat_save = 'local'

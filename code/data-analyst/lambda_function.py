@@ -298,6 +298,7 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
         }
         chat_model_id =  parsed_input.get("chat_model_id")
         sql_model_id =  parsed_input.get("sql_model_id")
+        plot_model_id = parsed_input.get("plot_model_id")
         embedding_model_id = parsed_input.get("embedding_model_id")
         expl_model_id = parsed_input.get("expl_model_id")
         approach =  parsed_input.get("approach")
@@ -477,7 +478,7 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
         # Check question intent
         try:
             time_tracker.start_process(iteration_id, "question_intent")
-            query_prompt, answer, response, user_query, error_msg = question_intent(chat_model_id, messages, intent_prompt, schema_str, guardrail=True)
+            query_prompt, answer, response, formatted_query, error_msg = question_intent(chat_model_id, messages, intent_prompt, schema_str, guardrail=True)
             
             time_tracker.end_process(iteration_id)
             if error_msg:
@@ -530,7 +531,7 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
                 # Generate plot
                 logger.info("Invoking Generate Plot")
                 time_tracker.start_process(iteration_id, "Generate Plot")
-                fig, py, df, error_msg = generate_plots(user_query, messages, extractor, db_config, chat_model_id, sql_model_id, embedding_model_id, approach, metadata, session, query_tabs=None) # Pass Extractor instance
+                fig, py, sql_gen, df, error_msg = generate_plots(user_query, messages, extractor, db_config, plot_model_id, sql_model_id, embedding_model_id, approach, metadata, session, query_tabs=None) # Pass Extractor instance
 
                 time_tracker.end_process(iteration_id)
 
@@ -543,7 +544,13 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
                     plot_base64 = encode_plot(fig)
                     response_body = {
                         'plot': plot_base64,
-                        'python_code': py
+                        'python_code': py,
+                        'sql_query': sql_gen,
+                        'q_cat': '',
+                        'q_mod': '',
+                        'mod_prompt': '',
+                        'filter_values': '',
+                        'cached_flag': cached_flag
                         }
                     # Add dataframe to response if it exists and is not empty
                     time_tracker.start_process(iteration_id, "Add DataFrame to Plot Response")

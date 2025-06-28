@@ -425,7 +425,7 @@ def rectify_python(model_id, question, python, sample_data, error):
     return python, error_msg
 
 
-def generate_plots(query, messages, schema_extractor, db_config, chat_model_id, sql_model_id, embedding_model_id, approach, metadata, session, query_tabs=None):
+def generate_plots(query, messages, schema_extractor, db_config, plot_model_id, sql_model_id, embedding_model_id, approach, metadata, session, query_tabs=None):
     # model_id = "anthropic.claude-3-sonnet-20240229-v1:0"    
     try:
         # Ensure directories exist at the start
@@ -483,7 +483,7 @@ def generate_plots(query, messages, schema_extractor, db_config, chat_model_id, 
             if not verify_file_access(csv_path):
                 raise FileNotFoundError(f"Failed to create or access CSV file at {csv_path}")
             
-            plot_generator = DBPlottingBedrock(chat_model_id)
+            plot_generator = DBPlottingBedrock(plot_model_id)
             python_query, error_msg = plot_generator.generate_python(query, table_ans)
             logger.debug(f"After generate_python - error_msg: {error_msg}")
             
@@ -502,7 +502,7 @@ def generate_plots(query, messages, schema_extractor, db_config, chat_model_id, 
                     #logger.debug("Attempted to save plot to %s", plot_output_path)
                     if plot_gen and verify_file_access(plot_output_path):
                        logger.debug("Plot file successfully generated and verified")
-                    return plot_gen, python_query, table_ans, error_msg
+                    return plot_gen, python_query, sql_gen, table_ans, error_msg
                     
                 elif error_msg != '':
                     logger.debug("System encountered an exception. Re-running the plot generator")
@@ -520,7 +520,7 @@ def generate_plots(query, messages, schema_extractor, db_config, chat_model_id, 
                             plot_output_path = os.path.join(DATA_DIR, 'plot_output.png')  # adjust filename as needed
                             if verify_file_access(plot_output_path):
                                 logger.debug("Plot file successfully generated after retry")
-                            return plot_gen, python_query, table_ans, error_msg
+                            return plot_gen, python_query, sql_gen, table_ans, error_msg
                         else:
                             logger.debug('Running the python rectification module to correct the exception - %s', error_msg)
                             sample_data = table_ans.head(3)
@@ -531,18 +531,18 @@ def generate_plots(query, messages, schema_extractor, db_config, chat_model_id, 
                                 plot_output_path = os.path.join(DATA_DIR, 'plot_output.png')  # adjust filename as needed
                                 if error_msg == '' and verify_file_access(plot_output_path):
                                     logger.debug("Plot file successfully generated after rectification")
-                            return plot_gen, python_query, table_ans, error_msg    
+                            return plot_gen, python_query, sql_gen, table_ans, error_msg    
         else:
             error_msg = f'Data cannot be extracted for plotting due to - {error_msg}'
             logger.debug(error_msg)
-            return plot_gen, python_query, table_ans, error_msg
+            return plot_gen, python_query, sql_gen, table_ans, error_msg
             
     except Exception as e:
         logger.error(f"Exception in generate_plots: {str(e)}")
         logger.debug(f"Current working directory: {os.getcwd()}")
         import traceback
         logger.debug(traceback.format_exc())
-        return None, None, None, f"Plot generation failed: {str(e)}"
+        return None, None, None, None, f"Plot generation failed: {str(e)}"
 
 # Changes : Added default argument query_prompt to question_intent() function
 def question_intent(model_id, messages, query_prompt = intent_prompt, schema_str = "", guardrail=False):
