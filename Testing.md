@@ -320,9 +320,10 @@ The vector store is used for storing the fewshot examples.
 User can migrate the data from sqlite to RDS Postgres using the utitlies available inside the tools/ directory
 
 1. Ensure that the RDS database connection parameters are correctly set in the tools/config.py inside the tools folder
-2. Ensure that the path to the sqlitedb is set in the sqlite_dir parameter in tools/config.py
-3. Open a terminal in sagemaker and type (1).pip install -r requirements.txt and then (2). python migrate_data_sqlite_postgres.py and select "all" when prompted
-4. The sqlite tables will be migrated to RDS postgres
+2. The sub-folder - sqlite_dbs must be there inside the tools folder and the database having extension - .sqlite must be available inside the sqlite_dbs sub-folder
+3 Ensure that the path to the sqlitedb is set in the sqlite_dir parameter in tools/config.py
+4. Open a terminal in sagemaker and type (1).pip install -r requirements.txt and then (2). python migrate_data_sqlite_postgres.py and select "all" when prompted
+5. The sqlite tables will be migrated to RDS postgres
 ```
 
 # Monitoring
