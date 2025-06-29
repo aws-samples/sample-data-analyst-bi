@@ -1,5 +1,8 @@
 # Data Analyst Platform 🚀
 
+# Table of contents
+[[_TOC_]]
+
 A full-stack AWS data analysis platform with AI-powered SQL generation, featuring serverless backend processing and a secure Streamlit frontend interface.
 
 ## 🎯 Key Features
@@ -417,8 +420,10 @@ http://localhost:8080
 ./view_logs.sh streamlit
 ```
 ## Testing Guide
+[Testing](Testing Guide.md) - Guide on what parameters, techniques to leverage for better performance and troubleshooting issues
 
-[Testing](Testing.md) - Guide on what parameters, techniques to leverage for better performance and troubleshooting issues
+## Demo
+[Demo](Demo.mov) - A recorded demo of the asset
 
 ## 🚨 Troubleshooting
 

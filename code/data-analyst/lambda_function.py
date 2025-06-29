@@ -305,9 +305,9 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
         approach =  parsed_input.get("approach")
         
         # Extract region information from environment variables
-        sql_model_region = os.environ.get("SQL_MODEL_REGION", "us-east-1")
-        chat_model_region = os.environ.get("CHAT_MODEL_REGION", "us-east-1")
-        embedding_model_region = os.environ.get("EMBEDDING_MODEL_REGION", "us-east-1")
+        model_region = os.environ.get("SQL_MODEL_REGION", "us-east-1")
+        # chat_model_region = os.environ.get("CHAT_MODEL_REGION", "us-east-1")
+        # embedding_model_region = os.environ.get("EMBEDDING_MODEL_REGION", "us-east-1")
         table_selection = parsed_input.get("table_selection")
         metadata = parsed_input.get("metadata")
         session = parsed_input.get("session")
@@ -325,7 +325,7 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
             if question_query_map:
                 logger.debug("question_query_map: %s", question_query_map)
                 logger.info("Caching data")
-                message, status_code = write_to_cache(expl_model_id, embedding_model_id, question_query_map, vector_db_params, expl_model_region=chat_model_region, emb_model_region=embedding_model_region)
+                message, status_code = write_to_cache(expl_model_id, embedding_model_id, question_query_map, vector_db_params, expl_model_region=model_region, emb_model_region=model_region)
                 response_body = {"status":"successful"}
                 if status_code == 200:
                     logger.info("Entries saved to cache successfully")
@@ -349,7 +349,7 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
                 embedding_model_id,
                 cache_thresh,
                 vector_db_params,
-                embedding_model_region=embedding_model_region
+                embedding_model_region=model_region
             )
             logger.info("get_cached_query completed successfully")
             logger.info("cached sql result: %s", sql)
@@ -392,7 +392,7 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
                     answer_gen = ""
                 elif error_msg == '' and df.shape[0] > 0:
                     logger.debug("Messages for answer generation: %s", messages)
-                    answer_gen, error_msg = generate_answer_en(chat_model_id, df, sql, messages, model_region=chat_model_region)
+                    answer_gen, error_msg = generate_answer_en(chat_model_id, df, sql, messages, model_region=model_region)
                 else:
                     answer_gen = ''
                 time_tracker.end_process(iteration_id)
@@ -485,7 +485,7 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
         # Check question intent
         try:
             time_tracker.start_process(iteration_id, "question_intent")
-            query_prompt, answer, response, formatted_query, error_msg = question_intent(chat_model_id, messages, intent_prompt, schema_str, guardrail=True, model_region=chat_model_region)
+            query_prompt, answer, response, formatted_query, error_msg = question_intent(chat_model_id, messages, intent_prompt, schema_str, guardrail=True, model_region=model_region)
             
             time_tracker.end_process(iteration_id)
             if error_msg:
@@ -505,7 +505,7 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
                 # Generate SQL response
                 time_tracker.start_process(iteration_id, "YesSQL")
                 logger.debug("Schema string before calling lambda: %s", schema_str[:200] + "..." if len(schema_str) > 200 else schema_str)
-                answer, sql_gen, error_msg, cat_gen, split_gen, prompt, df, suggestion, replacement_message = generate_answers_db(user_query, query_type, messages, extractor, schema_str, db_config, chat_model_id, sql_model_id, embedding_model_id, approach, metadata, session, table_selection, q_mod_prompt, query_tabs=None, iteration_id=iteration_id, time_tracker=time_tracker, chat_model_region=chat_model_region, sql_model_region=sql_model_region, embedding_model_region=embedding_model_region) # Pass extractor
+                answer, sql_gen, error_msg, cat_gen, split_gen, prompt, df, suggestion, replacement_message = generate_answers_db(user_query, query_type, messages, extractor, schema_str, db_config, chat_model_id, sql_model_id, embedding_model_id, expl_model_id, approach, metadata, session, table_selection, q_mod_prompt, query_tabs=None, iteration_id=iteration_id, time_tracker=time_tracker, model_region=model_region) # Pass extractor
 
                 time_tracker.end_process(iteration_id)
                 
@@ -538,7 +538,7 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
                 # Generate plot
                 logger.info("Invoking Generate Plot")
                 time_tracker.start_process(iteration_id, "Generate Plot")
-                fig, py, sql_gen, df, error_msg = generate_plots(user_query, messages, extractor, db_config, plot_model_id, sql_model_id, embedding_model_id, approach, metadata, session, query_tabs=None, chat_model_region=chat_model_region, sql_model_region=sql_model_region, embedding_model_region=embedding_model_region) # Pass Extractor instance
+                fig, py, sql_gen, df, error_msg = generate_plots(user_query, messages, extractor, db_config, plot_model_id, sql_model_id, embedding_model_id, approach, metadata, session, query_tabs=None, model_region=model_region) # Pass Extractor instance
 
                 time_tracker.end_process(iteration_id)
 

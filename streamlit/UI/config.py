@@ -213,7 +213,7 @@ model_id = os.getenv("SQL_MODEL_ID", "us.anthropic.claude-3-5-sonnet-20241022-v2
 chat_model_id = os.getenv("CHAT_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
 
 # Model ID for converting tabular data to natural language responses
-expl_model_id = os.getenv("EXPL_MODEL_ID", "anthropic.claude-3-haiku-20240307-v1:0")
+expl_model_id = os.getenv("EXPL_MODEL_ID", "us.anthropic.claude-3-5-sonnet-20240620-v1:0")
 
 # Model ID for generating python query for plotting
 plot_model_id = os.getenv("PLOT_MODEL_ID", "anthropic.claude-3-sonnet-20240229-v1:0")

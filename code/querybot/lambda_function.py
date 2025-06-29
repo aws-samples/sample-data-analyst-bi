@@ -79,6 +79,7 @@ def lambda_handler(event, context):
         approach = body.get("approach")
         database_type = body.get("database_type")
         db_conn_conf = body.get("db_conn_conf")
+        model_region = body.get("model_region")
         metadata = body.get("metadata")
         table_selection = body.get("table_selection")
         db_schema_file = None
@@ -120,6 +121,7 @@ def lambda_handler(event, context):
                 db_schema_file,
                 table_selection,
                 LLM_CONF[model_id],
+                model_region
             )
             end = time.time()
             logger.info(f"Creating SQLGeneratorBedrock response time: {end-st}")

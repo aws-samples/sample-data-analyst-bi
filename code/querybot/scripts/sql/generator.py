@@ -70,7 +70,7 @@ class SQLGenerator(ABC):
         except Exception as e:
             logging.error(f"Error in similarity_search: {e}", exc_info=True)
             return []
-    def get_fewshot_examples(self, text_query: str, embedding_model_id: str) -> list[str]:
+    def get_fewshot_examples(self, text_query: str, embedding_model_id: str, model_region:str) -> list[str]:
         db_params = {
             "host": os.environ.get("POSTGRES_ENDPOINT"),
             "port": os.environ.get("POSTGRES_PORT"),
@@ -84,7 +84,7 @@ class SQLGenerator(ABC):
             self.conn.autocommit = True
         except:
             print("get_fewshot_examples: Failed to establish connection")
-        embeddings = get_embedding(text_query, embedding_model_id)
+        embeddings = get_embedding(text_query, embedding_model_id, model_region)
         #print("embedding inside fewshot", embeddings)
         similarity_examples = self.similarity_search(self.conn, embeddings, self.k)
         print("similarity_examples inside fewshot", similarity_examples)
@@ -122,6 +122,7 @@ class SQLGeneratorBedrock(SQLGenerator):
         aoss_index: str = None,
         table_selection: str = "all",
         model_params: dict[str, any] = None,
+        model_region:str = None,
         k: int = 5,
     ) -> None:
         if model_id not in self._allowed_model_ids:
@@ -134,7 +135,7 @@ class SQLGeneratorBedrock(SQLGenerator):
         if model_id.startswith('ic-'):
             self._llm = SageMakerLLM(endpoint_name='data-analyst-endpoint-1', inference_component_name=model_id, region_name=AWS_REGION)
         else:
-            self._llm = BedrockLLM(model_id=model_id, region_name=AWS_REGION)
+            self._llm = BedrockLLM(model_id=model_id, region_name=model_region)
         self._db_helper = get_database_helper(
             database,
             db_conn_conf,
@@ -145,6 +146,7 @@ class SQLGeneratorBedrock(SQLGenerator):
             schema_file=schema_file,
         )
         self.table_selection = table_selection
+        self.model_region = model_region
         self.aoss_host = aoss_host
         self.aoss_index = aoss_index
         self.k = k
@@ -218,7 +220,7 @@ class SQLGeneratorBedrock(SQLGenerator):
             filtered_schema_meta = schema_meta
         else:
             message, tables_list = filter_tables(
-                text_query, schema_meta, table_access, self.model_id
+                text_query, schema_meta, table_access, self.model_id, self.model_region
             )
             print("Filtered Tables:", tables_list)
             if message:
@@ -317,14 +319,14 @@ class SQLGeneratorBedrock(SQLGenerator):
             filtered_schema_meta = schema_meta
         else:
             message, tables_list = filter_tables(
-                text_query, schema_meta, table_access, self.model_id
+                text_query, schema_meta, table_access, self.model_id, self.model_region
             )
             print("Schema Meta:", schema_meta)
             print("Filtered Tables ::", tables_list)
             if message:
                 return message
             filtered_schema_meta = filter_table_info(schema_meta, tables_list)
-        examples = self.get_fewshot_examples(text_query, embedding_model_id)
+        examples = self.get_fewshot_examples(text_query, embedding_model_id, self.model_region)
         print("examples retrieved:", examples)
         sys_prompt = BEDROCK_SYS_PROMPT.format(sql_database=self.database)
         sql_prompt = LLM_FS_PROMPTS[self.model_id].format(
