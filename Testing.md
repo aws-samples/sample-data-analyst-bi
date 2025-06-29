@@ -336,6 +336,7 @@ Users can convert the data from sqlite to csv format required for Athena using t
 
 1. In a command terminal inside Sagemaker notebook instance, type python convert_sqlite_to_S3DB.py
 2. The sqlite tables will be converted to csv format.
+```
 
 # Monitoring
 
