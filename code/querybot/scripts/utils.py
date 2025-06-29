@@ -79,11 +79,11 @@ def get_bedrock_client(assumed_role=None, region='us-east-1', url_override = Non
 #     return llm
 
 
-def init_bedrock_llm(modelId: str, model_args: dict|None = None) -> BedrockLLM:
+def init_bedrock_llm(modelId: str, model_region, model_args: dict|None = None) -> BedrockLLM:
     model_kwargs = copy.deepcopy(LLM_CONF[modelId])
     if model_args is not None:
         model_kwargs.update(model_args)
-    return BedrockLLM(model_id=modelId, region_name=AWS_REGION, **model_kwargs)
+    return BedrockLLM(model_id=modelId, region_name=model_region, **model_kwargs)
 
 def init_sagemaker_llm(model_id: str) -> SageMakerLLM:
     return SageMakerLLM(endpoint_name='data-analyst-endpoint-1', inference_component_name=model_id, region_name=AWS_REGION)
@@ -218,10 +218,10 @@ def delete_from_s3(bucket, key):
     bucket = s3.Bucket(bucket)
     bucket.object_versions.filter(Prefix=key).delete()
 
-def get_embedding(text, embedding_model_id):
+def get_embedding(text, embedding_model_id, model_region):
 
     bedrock = boto3.client(
-    service_name='bedrock-runtime')
+    service_name='bedrock-runtime', region_name=model_region)
 
     if 'cohere' in embedding_model_id:
         body = json.dumps({

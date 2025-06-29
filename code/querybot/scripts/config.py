@@ -46,7 +46,7 @@ LLM_CONF = {
         "temperature": 0,
         "top_p": 1,
         "top_k": 250,
-        "max_tokens": 200,
+        "max_tokens": 500,
         "anthropic_version": "bedrock-2023-05-31",
         "stop_sequences": ["</sql>"],
         "performanceConfig": "standard"
@@ -55,7 +55,7 @@ LLM_CONF = {
         "temperature": 0,
         "top_p": 1,
         "top_k": 250,
-        "max_tokens": 200,
+        "max_tokens": 500,
         "anthropic_version": "bedrock-2023-05-31",
         "stop_sequences": ["</sql>"],
         "performanceConfig": "standard"
@@ -64,7 +64,7 @@ LLM_CONF = {
         "temperature": 0,
         "top_p": 1,
         "top_k": 250,
-        "max_tokens": 200,
+        "max_tokens": 500,
         "anthropic_version": "bedrock-2023-05-31",
         "stop_sequences": ["</sql>"],
         "performanceConfig": "standard"
@@ -73,7 +73,7 @@ LLM_CONF = {
         "temperature": 0,
         "top_p": 1,
         "top_k": 250,
-        "max_tokens": 200,
+        "max_tokens": 500,
         "anthropic_version": "bedrock-2023-05-31",
         "stop_sequences": ["</sql>"],
         "performanceConfig": "standard"
@@ -82,7 +82,7 @@ LLM_CONF = {
         "temperature": 0,
         "top_p": 1,
         "top_k": 250,
-        "max_tokens": 200,
+        "max_tokens": 500,
         "anthropic_version": "bedrock-2023-05-31",
         "stop_sequences": ["</sql>"],
         "performanceConfig": "optimized"

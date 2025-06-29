@@ -401,6 +401,7 @@ The question asked by the user
 EXACTLY ONE of these three options:
 - "YesSQL" - For questions answerable with SQL alone
 - "YesPlot" - For questions requiring SQL + visualization
+- - A brief message guiding the user to ask a data-related question (for non-data queries)
 </answer>
 
 Examples:
@@ -430,6 +431,13 @@ show me the trend  of the sales of store 100
 </question>
 <answer>
 YesPlot
+</answer>
+
+<question>
+why is the sales of store 100 increasing
+</question>
+<answer>
+YesSQL
 </answer>
 
 Important Rules:

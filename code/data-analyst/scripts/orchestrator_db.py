@@ -52,7 +52,7 @@ from scripts.query_db.prompt_config_clv3 import question_mod_prompt
 logger = logging.getLogger(__name__)
 
 
-def invoke_sql_generator_lambda(messages, query, db_config, model_id, embedding_model_id, approach, metadata, session, table_selection, query_tabs=None):
+def invoke_sql_generator_lambda(messages, query, db_config, model_id, embedding_model_id, approach, metadata, session, table_selection, query_tabs=None, model_region=None):
     """
     Invokes an AWS Lambda function to generate SQL queries based on input parameters.
     
@@ -101,6 +101,7 @@ def invoke_sql_generator_lambda(messages, query, db_config, model_id, embedding_
                 "user": db_config.get("user"),
                 "password": db_config.get("password")
             },
+            "model_region": model_region,
             "table_selection": table_selection,
             "metadata":metadata,
             "question": query,
@@ -186,32 +187,9 @@ def generate_answer_en(model_id, table_ans, sql, messages, model_region=None):
 
     return answer_en, error_msg
 
-def get_question_categories(question):
-    """This function is used to classify a question into categories using heuristics rules
-
-    Args:
-        question (str): text query
-    Returns: The category of the question
-    """
-    question_cat = ''
-    question_act = question
-    question_lcase = question_act.lower()
-    question_toks = question_lcase.split()
-    for tok in words_cat_reason:
-        if tok in question_toks:
-            question_cat = 'reasoning'
-            return question_cat
-    if question_cat == '':
-        for tok in words_cat_data_ret_simple:
-            if tok in question_toks:
-                question_cat = 'data_retrieval_simple'
-                return question_cat
-        if question_cat == '':
-            return 'data_retrieval_simple'
-
 # query_tabs is not needed
 # /home/sagemaker-user/data_analyst_bot/da_refactor/scripts/query_db/pgsql_executor.py
-def generate_answers_db(query, query_type, messages, schema_extractor, schema_str, db_config, chat_model_id, sql_model_id, embedding_model_id, approach, metadata, session, table_selection, q_mod_prompt = None, query_tabs=None, iteration_id=None, time_tracker=None, chat_model_region=None, sql_model_region=None, embedding_model_region=None):
+def generate_answers_db(query, query_type, messages, schema_extractor, schema_str, db_config, chat_model_id, sql_model_id, embedding_model_id, expl_model_id, approach, metadata, session, table_selection, q_mod_prompt = None, query_tabs=None, iteration_id=None, time_tracker=None, model_region=None):
     """Section to invoke modules to generate answers for a usecase involving database
 
     Args:
@@ -242,7 +220,7 @@ def generate_answers_db(query, query_type, messages, schema_extractor, schema_st
             time_tracker.start_process(iteration_id, "aggregation - sql_generation")
             st = time.time()
             try:
-                sql_gen, sql_result, error_msg = invoke_sql_generator_lambda(messages, query, db_config, sql_model_id, embedding_model_id, approach, metadata, session, table_selection, query_tabs)
+                sql_gen, sql_result, error_msg = invoke_sql_generator_lambda(messages, query, db_config, sql_model_id, embedding_model_id, approach, metadata, session, table_selection, query_tabs, model_region)
             except ValueError as ve:
                 logger.error("Unpacking error in invoke_sql_generator_lambda: %s", ve)
                 raise
@@ -308,7 +286,7 @@ def generate_answers_db(query, query_type, messages, schema_extractor, schema_st
                         answer_gen = suggestion
                     elif error_msg == '' and table_ans.shape[0] > 0:
                         logger.debug("message: %s", messages)
-                        answer_gen, error_msg = generate_answer_en(chat_model_id, table_ans, sql_gen, messages, model_region=chat_model_region)
+                        answer_gen, error_msg = generate_answer_en(chat_model_id, table_ans, sql_gen, messages, model_region=model_region)
                     
                     time_tracker.end_process(iteration_id)
                 #logger.debug('error_msg in orc', error_msg)
@@ -317,7 +295,7 @@ def generate_answers_db(query, query_type, messages, schema_extractor, schema_st
 
             time_tracker.start_process(iteration_id, "Reasoning - Sub question generation")
 
-            modques_generator = FewShotModifierBedrock(chat_model_id, model_region=chat_model_region)
+            modques_generator = FewShotModifierBedrock(chat_model_id, model_region=model_region)
             logger.debug("Invoking Question Modifier")
             # logger.debug("Q_Mod_Prompt in generate answers db:\n", q_mod_prompt)
             try:
@@ -382,7 +360,7 @@ def generate_answers_db(query, query_type, messages, schema_extractor, schema_st
                     else:
                         time_tracker.start_process(iteration_id, "Reasoning - result_ explanation generation")
 
-                        reason_generator = FewShotReasonerBedrock(reasoner_llm, model_region=chat_model_region)
+                        reason_generator = FewShotReasonerBedrock(expl_model_id, model_region=model_region)
                         logger.debug("Trying to generate Reasoning")
                         try:
                             answer_gen, error_msg = reason_generator.generate_reasoning(messages, query, table_ans)
@@ -425,7 +403,7 @@ def rectify_python(model_id, question, python, sample_data, error, model_region=
     return python, error_msg
 
 
-def generate_plots(query, messages, schema_extractor, db_config, plot_model_id, sql_model_id, embedding_model_id, approach, metadata, session, query_tabs=None, chat_model_region=None, sql_model_region=None, embedding_model_region=None):
+def generate_plots(query, messages, schema_extractor, db_config, plot_model_id, sql_model_id, embedding_model_id, approach, metadata, session, query_tabs=None, model_region=None):
     # model_id = "anthropic.claude-3-sonnet-20240229-v1:0"    
     try:
         # Ensure directories exist at the start
@@ -439,7 +417,7 @@ def generate_plots(query, messages, schema_extractor, db_config, plot_model_id, 
         python_query = ''
 
         logger.debug("Inside generate plots")
-        sql_gen,  sql_result, error_msg = invoke_sql_generator_lambda(messages, query, db_config, sql_model_id, embedding_model_id, approach, metadata, session, query_tabs)
+        sql_gen,  sql_result, error_msg = invoke_sql_generator_lambda(messages, query, db_config, sql_model_id, embedding_model_id, approach, metadata, session, query_tabs, model_region)
         logger.debug('sql gen in plot: %s', sql_gen)
 
         if db_config.get("db_type") == 's3':
@@ -483,7 +461,7 @@ def generate_plots(query, messages, schema_extractor, db_config, plot_model_id, 
             if not verify_file_access(csv_path):
                 raise FileNotFoundError(f"Failed to create or access CSV file at {csv_path}")
             
-            plot_generator = DBPlottingBedrock(plot_model_id, model_region=chat_model_region)
+            plot_generator = DBPlottingBedrock(plot_model_id, model_region=model_region)
 
             python_query, error_msg = plot_generator.generate_python(query, table_ans)
             logger.debug(f"After generate_python - error_msg: {error_msg}")
@@ -525,7 +503,7 @@ def generate_plots(query, messages, schema_extractor, db_config, plot_model_id, 
                         else:
                             logger.debug('Running the python rectification module to correct the exception - %s', error_msg)
                             sample_data = table_ans.head(3)
-                            python_query, error_msg = rectify_python(sql_model_id, query, python_query, sample_data, error_msg, model_region=sql_model_region)
+                            python_query, error_msg = rectify_python(sql_model_id, query, python_query, sample_data, error_msg, model_region=model_region)
                             if error_msg == '':
                                 plot_gen, error_msg = plot_generator.generate_plot(python_query)
                                 # Final verification of plot file

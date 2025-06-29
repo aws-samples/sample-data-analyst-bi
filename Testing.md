@@ -61,6 +61,9 @@ There are some parameters which can be set in the following path  - streamlit/UI
 2. **Plot model** -  The LLM used to generate a python query to generate plots can be set in the config.py
 - `plot_model_id`: "anthropic.claude-3-sonnet-20240229-v1:0"
 
+3. **Explanation model** -  The LLM used to generate reasoning or explain insights for reasoning questions. It can be set in the config.py
+- `expl_model_id`: "us.anthropic.claude-3-5-sonnet-20240620-v1:0"
+
 3. **Caching** - The system uses a approval based caching mechanism where the SQL if approved by the user, then the SQL and the vector embedding of the question are transferred to the cache. In the next run , if the same question is asked by the user, then the SQL is retrieved rom the cache, executed in the database and results returned to the user. In this case, no LLM calls are made, thus improving the response time. The system compares the vector embeddings of the question asked by the user with the vector embeddings of the question stored in the cache and if the similarity score is greater than equal to the threshold, the SQL is retrieved. This approach of caching a question and SQL also helps to automate the creation of fewshot examples in the vector db. Set the threshold parameter
 - `cache_thresh`: 0.95 
 
@@ -100,6 +103,7 @@ The question asked by the user
 EXACTLY ONE of these three options:
 - "YesSQL" - For questions answerable with SQL alone
 - "YesPlot" - For questions requiring SQL + visualization
+- - A brief message guiding the user to ask a data-related question (for non-data queries)
 </answer>
 
 Examples:
@@ -129,6 +133,13 @@ show me the trend  of the sales of store 100
 </question>
 <answer>
 YesPlot
+</answer>
+
+<question>
+why is the sales of store 100 increasing
+</question>
+<answer>
+YesSQL
 </answer>
 
 Important Rules:
@@ -189,10 +200,6 @@ IMPORTANT -
 (2). Before creating the python function, check what columns are available for the data in <actual_data_sample> tag. You should not filter the data for any values inside the function definition
 (3). Only use columns available in <actual_data_sample> tag to perform any data transformations needed inside the pythom function definition. You should not refer to any columns not available in the data inside <actual_data_sample> tag
 (4). Just reminding you that your job is to create a python function to generate plot. No filters are required on the data
-```
-
-```bash
-N.B. For invoking Bedrock LLMs used in the data-analyst lambda function from a specific region , set AWS_REGION in the config.py of data-analyst lambda function in the following path  - data-analyst/scripts/query_db/config.py
 ```
 
 ### Parameters set in query bot lambda
@@ -297,9 +304,6 @@ LLM_CONF:
 
 - `AOSS_RELEVANCE_THRESHOLD`: 0.75
 
-```bash
-N.B. For invoking Bedrock LLMs used in the query bot lambda from a specific region , set AWS_REGION in the config.py of data querybot lambda function in the following path - querybot/scripts//config.py
-```
 
 # Setting up the cache/fewshot examples
 The vector store is created after the cdk deployment is done. Post that, the table should be created inside the vector store. This table will store the fewshot examples and the frequently asked questions.
@@ -341,7 +345,7 @@ The time taken in each step is tored inside the processing_times folder in the a
 - **sql_generation**: Time taken to generate the SQL
 - **sql_execution**: Time taken to execute the SQL
 - **sql_re-execution**: Time taken to regenerate the SQL(if it has wrong syntx) and re-execute
-- **Normalization**: Time taken to normalize fileter values in the SQL
+- **Normalization**: Time taken to normalize filter values in the SQL
 - **Explanation generation**: Time taken to convert the results from the database to natural language response
 
 - **Total processing time**: The total processing time
@@ -354,16 +358,17 @@ The time taken in each step is tored inside the processing_times folder in the a
 
 # Troubleshooting Guide
 
-This guide provides solutions for common issues and optimization techniques for the GenAIIDP solution.
+This guide provides solutions for common issues and optimization techniques for the solution.
 
 ## Common Issues and Resolutions
 
 | Issue | Resolution |
 |-------|------------|
-| **Timeout Error** | Goto the logs in the application bucket and check the total response time. If it is more than 29 secs, then the issue is with the API Gateway timeout. The default quota for API Gateway is set to 29 secs. A service ticket can be raised in the AWS console to increase it to 80000 msecs. Go to service quotas--> API Gateway. Maximum integration timeout in milliseconds" and set the "Increase quota value" to 80000 ms.This is auto-approved. Wait for an half an hour and then go to the API Gateway service from the console. Go to your API --> Resources --> POST--> Integration Request. Click on Edit and change the "Integration timeout" to the one that you applied in your quota request. Once done, click on Deploy API and select the stage. |
-| **Failed to generate SQL** | (1). Check if all the LLMs used in the asset are activated in Bedrock. (2).Check if the lambda function is able to connect to the vector database and the api database. This can be validated in the cloudwatch logs |
+| **Timeout Error** | Goto the logs in the application bucket and check the total response time. If it is more than 29 secs, then the issue is with the API Gateway timeout. The default quota for API Gateway is set to 29 secs. A service ticket can be raised in the AWS console to increase it to 2 mins. Go to service quotas--> API Gateway. Maximum integration timeout in milliseconds" and set the "Increase quota value" to 2 mins .This is auto-approved. Wait for an half an hour and then go to the API Gateway service from the console. Go to your API --> Resources --> POST--> Integration Request. Click on Edit and change the "Integration timeout" to the one that you applied in your quota request. Once done, click on Deploy API and select the stage. |
+| **Failed to generate SQL** | (1). Check if all the LLMs used in the asset are activated in Bedrock. (2).Check if the lambda function is able to connect to the vector database and the api database. This can be validated in the cloudwatch logs, (3). Check if the model is available in the specified region, (4). the model should be defined in the configuration of data-analyst lambda function(path - data-analyst/scripts/query_db/config.py) and query bot lambda function (path - query_bot/scripts/config.py). Additionally, the model should be defined in the prompts file(path - query_bot/scripts/prompts.py, the relevant parameters are - LLM_ZS_PROMPTS, LLM_FS_PROMPTS, LLM_PROMPTS_FINAL, LLM_IP_PROMPTS, LLM_IP_PROMPTS_FINAL, LLM_RECTIFIER_PROMPTS, LLM_RECTIFIER_PROMPTS_FINAL) |
 | **AccessDeniedException when calling the InvokeModel operation** |Resolution is same as in the previous issue |
 | **Fewshot examples not getting added to prompt** | You will not see an error, however if you use one embedding model for populating the vector database and another embedding model to generate the embeddings for incoming question, then no data will be retrieved from the vector database and added to the prompt. This can be validated in the cloudwatch logs of the querybot lambda |
+**An error occurred (ThrottlingException) when calling the Converse operation**  | Check the quota limit(Tokens per mins  & Requests per min) of bedrock LLM in your account and raise a service ticket to increase those quotas
   **Other Issues**  | Check the cloudwatch logs of both the lambda functions or check the logs stored in the S3 bucket created by the cdk deployment
 
 

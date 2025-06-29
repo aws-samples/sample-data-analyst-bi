@@ -177,7 +177,7 @@ def create_schema_meta(
         print("create_schema_meta :::", e)
         return None
 
-def filter_tables(text_query, schema_meta, table_access, model_id):
+def filter_tables(text_query, schema_meta, table_access, model_id, model_region):
     try:
         fshot_prompt = query_text_tab_tempv3.format(
             schema=schema_meta, question=text_query
@@ -186,7 +186,7 @@ def filter_tables(text_query, schema_meta, table_access, model_id):
             llm = init_sagemaker_llm(model_id)
             response = llm(fshot_prompt, system_prompt=filter_tables_system_prompt)
         else:
-            llm = init_bedrock_llm(model_id)
+            llm = init_bedrock_llm(model_id, model_region)
             if "{sys_prompt}" in LLM_PROMPTS_FINAL[model_id]:
                 final_prompt = LLM_PROMPTS_FINAL[model_id].format(
                     sys_prompt=filter_tables_system_prompt, sql_prompt=fshot_prompt
