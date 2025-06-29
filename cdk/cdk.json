@@ -78,12 +78,12 @@
     "api_db_name": "student_club",
     "api_db_user": "demo",
     "api_db_password": "Pass123!",
-    "api_db_type": "postgresql",
-    "metadata_s3_bucket": "data-analyst-metadata3",
+    "api_db_type": "s3",
+    "metadata_s3_bucket": "data-analyst-use1",
     "metadata_is_meta": true,
     "metadata_table_meta": "schema/student_club_tables.xlsx",
     "metadata_column_meta": "schema/student_club_columns.xlsx",
-    "metadata_metric_meta": null,
+    "metadata_metric_meta": "schema/student_club_metrics.xlsx",
     "metadata_table_access": null
   }
 } 
