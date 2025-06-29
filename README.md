@@ -2,7 +2,7 @@
 
 A full-stack AI-powered business intelligence tool for non-experts, featuring serverless backend processing and a secure Streamlit frontend interface.
 
-![Data Analyst BI User Interface](UI.giff)
+![Data Analyst BI User Interface](Demo.mov)
 
 ## 🎯 Key Features
 
@@ -20,7 +20,7 @@ A full-stack AI-powered business intelligence tool for non-experts, featuring se
 
 ## 🏗️ Architecture
 
-![Data Analyst Platform Architecture](DA_arch.png)
+![Data Analyst Platform Architecture](architecture.jpg)
 
 ### Backend (Serverless)
 - **data-analyst Lambda**: Main orchestrator, handles requests and responses
