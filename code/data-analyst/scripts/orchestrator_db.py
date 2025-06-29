@@ -318,7 +318,7 @@ def generate_answers_db(query, query_type, messages, schema_extractor, schema_st
                 user_msg = [{"role": "user", "content":[{"text": split_gen}]}]
                 # Passing mod_ques after concatenating with split_gen
                 logger.debug("Model ID for SQL Invocation : %s", sql_model_id)
-                sql_gen, sql_result, error_msg = invoke_sql_generator_lambda(messages, mod_ques, db_config, sql_model_id, embedding_model_id, approach, metadata, session, query_tabs)
+                sql_gen, sql_result, error_msg = invoke_sql_generator_lambda(messages, mod_ques, db_config, sql_model_id, embedding_model_id, approach, metadata, session, query_tabs, model_region)
                 
                 time_tracker.end_process(iteration_id)
                 
