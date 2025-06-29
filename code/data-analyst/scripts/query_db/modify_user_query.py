@@ -25,10 +25,11 @@ print('cwd_clf',os.getcwd())
 class FewShotModifierBedrock():
     _allowed_model_ids = MODEL_CONF.keys()
     
-    def __init__(self, modelid):
+    def __init__(self, modelid, model_region: str = None):
         if modelid not in self._allowed_model_ids:
             raise ValueError(f'Error: model_id should be chosen from {self._allowed_model_ids}')
         self.modelid = modelid
+        self.model_region = model_region
         self.model_params = MODEL_CONF[modelid]
 
     def create_fshot_prompt(self, question: str, query_type: str, schema_str: str, q_mod_prompt: str) -> str:
@@ -84,7 +85,7 @@ class FewShotModifierBedrock():
         response = ''
         prompt = self.create_fshot_prompt(question, query_type,schema_str, q_mod_prompt)
         messages = [{"role": "user", "content":[{"text": question}]}]
-        qtype_generator = BedrockTextGenerator(self.modelid, self.model_params)
+        qtype_generator = BedrockTextGenerator(self.modelid, self.model_params, region=self.model_region)
         text_resp, error_msg = qtype_generator.generate(input_text=messages, prompt=prompt)
         if error_msg == '':
             print('text_resp',text_resp)

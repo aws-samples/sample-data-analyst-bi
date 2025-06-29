@@ -56,8 +56,11 @@ class FrontendStack(Stack):
                  metadata_metric_meta: str = None,
                  metadata_table_access: str = None,
                  sql_model_id: str = None,
+                 sql_model_region: str = "us-east-1",
                  chat_model_id: str = None,
+                 chat_model_region: str = "us-east-1",
                  embedding_model_id: str = None,
+                 embedding_model_region: str = "us-east-1",
                  approach: str = "few_shot",
                  domain_name: str = None,
                  hosted_zone_id: str = None,
@@ -92,8 +95,11 @@ class FrontendStack(Stack):
         
         # Store model configuration
         self.sql_model_id = sql_model_id
+        self.sql_model_region = sql_model_region
         self.chat_model_id = chat_model_id
+        self.chat_model_region = chat_model_region
         self.embedding_model_id = embedding_model_id
+        self.embedding_model_region = embedding_model_region
         self.approach = approach
         
         # Store domain and certificate configuration
@@ -465,8 +471,11 @@ class FrontendStack(Stack):
             "METADATA_TABLE_ACCESS": self.metadata_table_access or "",
             # Model configuration
             "SQL_MODEL_ID": self.sql_model_id or "",
+            "SQL_MODEL_REGION": self.sql_model_region or "us-east-1",
             "CHAT_MODEL_ID": self.chat_model_id or "",
+            "CHAT_MODEL_REGION": self.chat_model_region or "us-east-1",
             "EMBEDDING_MODEL_ID": self.embedding_model_id or "",
+            "EMBEDDING_MODEL_REGION": self.embedding_model_region or "us-east-1",
             "APPROACH": self.approach or "few_shot",
             # S3-Athena specific environment variables
             "ATHENA_WORKGROUP": self.backend_stack.athena_workgroup.name

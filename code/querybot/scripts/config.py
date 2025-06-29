@@ -1,5 +1,7 @@
 # bedrock configs
-AWS_REGION = 'us-east-1'
+import os
+# Read from environment variable, fallback to us-east-1 for backward compatibility
+AWS_REGION = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
 S3_BUCKET = 'td-gai-2023'
 VPCE_ID = "vpce-0bf530fcbf9a8d324" #ID of the VPC Endpoint (VPCE) covering the VPC, Subnet and Security Group associated with the EC2 / SM instance running the app - this will be used to access OpenSearch (for ICL)
 DB_CONF_PATH = '../conf/db_config.yaml'

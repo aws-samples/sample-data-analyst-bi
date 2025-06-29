@@ -14,7 +14,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 my_config = Config(
-    region_name = 'us-east-1',
     signature_version = 'v4',
     retries = {
         'max_attempts': 3,
@@ -24,7 +23,17 @@ my_config = Config(
 
 vector_table = "examples"
 
-bedrock_rt = boto3.client("bedrock-runtime", config = my_config)
+def get_bedrock_client_for_model(model_id, region=None):
+    """Get a Bedrock client with the specified region for the model"""
+    from scripts.query_db.config import AWS_REGION
+    
+    # Use provided region or fall back to default
+    client_region = region or AWS_REGION
+    
+    return boto3.client("bedrock-runtime", region_name=client_region, config=my_config)
+
+# For backward compatibility, create a default client
+bedrock_rt = get_bedrock_client_for_model("default")
 
 def create_cache_table_if_not_exists(conn):
     """
@@ -114,7 +123,8 @@ def get_claude_response(messages="",
                         topP=1, 
                         topK=250, 
                         stop_sequence=["\n\n"], 
-                        model_id = "anthropic.claude-3-haiku-20240307-v1:0"):
+                        model_id = "anthropic.claude-3-haiku-20240307-v1:0",
+                        region=None):
     """
     Simple function for calling Claude via boto3 and the invoke_model API. 
     """
@@ -125,18 +135,22 @@ def get_claude_response(messages="",
                               topP=topP, 
                               topK=topK, 
                               stop_sequence=stop_sequence)
-    response = bedrock_rt.invoke_model(modelId=model_id, body=json.dumps(body))
+    # Use model-specific client
+    client = get_bedrock_client_for_model(model_id, region=region)
+    response = client.invoke_model(modelId=model_id, body=json.dumps(body))
     response = json.loads(response['body'].read().decode('utf-8'))
 
     return response
     
-def get_embedding(text, emb_model_id):
+def get_embedding(text, emb_model_id, region=None):
     """
     Creates the embedding of the nlq/text question
     """
     body = json.dumps({"inputText": text, "embeddingTypes": ["float"]})
 
-    response = bedrock_rt.invoke_model(
+    # Use model-specific client
+    client = get_bedrock_client_for_model(emb_model_id, region=region)
+    response = client.invoke_model(
         body=body,
         modelId=emb_model_id,
         accept="application/json",
@@ -177,7 +191,7 @@ def gen_prompt(query, question):
 
 
 
-def get_expl_question(query, question, expl_model_id):
+def get_expl_question(query, question, expl_model_id, region=None):
     
     content = gen_prompt(query, question)
     prompt = [{"role":"user", "content":content}]
@@ -188,7 +202,8 @@ def get_expl_question(query, question, expl_model_id):
         topP=1,
         topK=0,
         stop_sequence=["Human: "],
-        model_id=expl_model_id
+        model_id=expl_model_id,
+        region=region
         )
     logger.debug("LLM response: %s", text_resp)
     question_variant = getmultitagtext(text_resp['content'][0]['text'], "question_gen")
@@ -221,7 +236,7 @@ def insert_data_to_postgres(conn, ingest_data):
         return message
 
 def write_to_cache(expl_model_id, emb_model_id, question_query_map, db_params, query_key_name="queries",
-                             question_key_name="question"):
+                             question_key_name="question", expl_model_region=None, emb_model_region=None):
     """
     Ingests the fewshot examples in the vector database
     """
@@ -229,10 +244,10 @@ def write_to_cache(expl_model_id, emb_model_id, question_query_map, db_params, q
     query = question_query_map[query_key_name]
     question = question_query_map[question_key_name]
 
-    explanation, question_variant = get_expl_question(query, question, expl_model_id)
+    explanation, question_variant = get_expl_question(query, question, expl_model_id, region=expl_model_region)
     logger.debug("explanation: %s", explanation)
     logger.debug("question_variant: %s", question_variant)
-    question_embeddings = get_embedding(question, emb_model_id)
+    question_embeddings = get_embedding(question, emb_model_id, region=emb_model_region)
     ingest_data = {"queries":query, "question": question, "explanation": explanation, "gen_question":question_variant, "question_embeddings":question_embeddings}
     logger.debug("db_params configured for connection")
     try:
@@ -274,9 +289,9 @@ def similarity_search(conn, query_embedding, top_k) -> list[tuple]:
         logger.error("Error in similarity_search: %s", e, exc_info=True)
         return []
 
-def get_embedding(text, embedding_model_id):
-    bedrock = boto3.client(
-    service_name='bedrock-runtime')
+def get_embedding(text, embedding_model_id, region=None):
+    # Use model-specific client
+    bedrock = get_bedrock_client_for_model(embedding_model_id, region=region)
 
     if 'cohere' in embedding_model_id:
         body = json.dumps({
@@ -306,7 +321,7 @@ def get_embedding(text, embedding_model_id):
     
     return response_body['embedding']
 
-def get_cached_query(text_query: str, embedding_model_id: str, cache_thresh: float, db_params:dict) -> list[str]:
+def get_cached_query(text_query: str, embedding_model_id: str, cache_thresh: float, db_params:dict, embedding_model_region=None) -> list[str]:
         query = None
         # db_params = {
         #     "host": os.environ.get("DB_HOST"),
@@ -328,7 +343,7 @@ def get_cached_query(text_query: str, embedding_model_id: str, cache_thresh: flo
             logger.error("get_cached queries: Failed to establish connection: %s", e)
             return None
         
-        embeddings = get_embedding(text_query, embedding_model_id)
+        embeddings = get_embedding(text_query, embedding_model_id, region=embedding_model_region)
         #print("embeddings", embeddings)
         similarity_examples = similarity_search(conn, embeddings, 1)
         logger.debug("similarity_examples: %s", similarity_examples)

@@ -24,10 +24,11 @@ class DBPlottingBedrock():
     
     _allowed_model_ids = MODEL_CONF.keys()
     
-    def __init__(self, modelid: str):
+    def __init__(self, modelid: str, model_region: str = None):
         if modelid not in self._allowed_model_ids:
             raise ValueError(f'Error: model_id should be chosen from {self._allowed_model_ids}')
         self.modelid = modelid
+        self.model_region = model_region
         self.model_params = MODEL_CONF[modelid]
         self.prompt_type = 'fewshot'
 
@@ -74,7 +75,7 @@ class DBPlottingBedrock():
         py_gen = ''
         messages = [{"role": "user", "content":[{"text": question + '.The data is filtered,donot filter the data'}]}]
         prompt = self.create_fshot_prompt(question, answer)
-        plot_generator = BedrockTextGenerator(self.modelid, self.model_params)
+        plot_generator = BedrockTextGenerator(self.modelid, self.model_params, region=self.model_region)
         text_resp, error_msg = plot_generator.generate(input_text=messages, prompt=prompt)
         if error_msg == '':
             py_gen = extract_py_code(text_resp)

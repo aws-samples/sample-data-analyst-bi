@@ -6,7 +6,8 @@ import os
 SQL_Gen_Lambda = 'lambda-func'
 
 ## To be used for OpensearchServerless(OSS) vector database & Bedrock invocation
-AWS_REGION = 'us-east-1' #'ap-south-1'
+# Read from environment variable, fallback to us-east-1 for backward compatibility
+AWS_REGION = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
 ## The base dir containing the folders
 #HOME_DIR = '/home/sagemaker-user/data_analyst_bot/da_refactor/' ## the home dir path
 

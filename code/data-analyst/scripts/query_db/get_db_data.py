@@ -29,11 +29,12 @@ root_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 class SQLGenerator():
     _allowed_model_ids = MODEL_CONF.keys()
     
-    def __init__(self, modelid: str, prompt_type: str):
+    def __init__(self, modelid: str, prompt_type: str, model_region: str = None):
         print('modelid', modelid)
         if modelid not in self._allowed_model_ids:
             raise ValueError(f'Error: model_id should be chosen from {self._allowed_model_ids}')
         self.modelid = modelid
+        self.model_region = model_region
         self.model_params = MODEL_CONF[modelid]
         self.prompt_type = prompt_type
 
@@ -74,7 +75,7 @@ class SQLGenerator():
         sql = ''
         try:
             if 'claude' in self.modelid or 'nova' in self.modelid or 'llama' in self.modelid:
-                sql_generator = BedrockTextGenerator(self.modelid, self.model_params)
+                sql_generator = BedrockTextGenerator(self.modelid, self.model_params, region=self.model_region)
                 print('messages get db', messages)
                 text_resp, error_msg = sql_generator.generate(input_text=messages, prompt=prompt)
                 print('sql_text_resp', text_resp)

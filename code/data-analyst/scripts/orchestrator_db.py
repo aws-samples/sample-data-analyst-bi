@@ -137,16 +137,17 @@ def invoke_sql_generator_lambda(messages, query, db_config, model_id, embedding_
         return '', None, f'Error invoking SQL generator Lambda: {str(e)}'  # Return 3 values: sql, result, error
 
 
-def get_text_tables(model_id, messages):
+def get_text_tables(model_id, messages, model_region=None):
     """This function invokes LLM to identify table names elated to a text query . This is to be used 
     for determining persona based access
 
     Args:
         messages(list): the list of content passed by user and responses from bot
+        model_region(str): the region for the model
     Returns: The tables and error messages
     """
     model_params = MODEL_CONF[model_id]
-    tab_generator = FewShotTabBedrock(model_id)
+    tab_generator = FewShotTabBedrock(model_id, model_region=model_region)
     #user_message = [{"role": "user", "content":question }]
     tab_gen, error_msg = tab_generator.generate_tables(messages=messages)
     logger.debug('tab_gen before: %s', tab_gen)
@@ -155,7 +156,7 @@ def get_text_tables(model_id, messages):
     logger.debug('tab_gen after: %s', tab_gen)
     return tab_gen, error_msg
 
-def generate_answer_en(model_id, table_ans, sql, messages):
+def generate_answer_en(model_id, table_ans, sql, messages, model_region=None):
     """This function invokes LLM to convert a tabular data to natural language
 
     Args:
@@ -163,11 +164,12 @@ def generate_answer_en(model_id, table_ans, sql, messages):
         python query
         sql(str): the generated SQL from LLM
         messages(list): the list of content passed by user and responses from bot
+        model_region(str): the region for the model
     Returns: The answer in natural language
     """
     answer_en = ''
     model_params = MODEL_CONF[table_en_llm]
-    answer_gen_en = BedrockTextGenerator(model_id, model_params)
+    answer_gen_en = BedrockTextGenerator(model_id, model_params, region=model_region)
     table_ans = table_ans.to_dict(orient='records')
     if 'claude-3' in table_en_llm or "nova" in table_en_llm:
         prompt_en = tab_nlq_tempv3.format(result=table_ans, sql=sql)
@@ -209,7 +211,7 @@ def get_question_categories(question):
 
 # query_tabs is not needed
 # /home/sagemaker-user/data_analyst_bot/da_refactor/scripts/query_db/pgsql_executor.py
-def generate_answers_db(query, query_type, messages, schema_extractor, schema_str, db_config, chat_model_id, sql_model_id, embedding_model_id, approach, metadata, session, table_selection, q_mod_prompt = None, query_tabs=None, iteration_id=None, time_tracker=None):
+def generate_answers_db(query, query_type, messages, schema_extractor, schema_str, db_config, chat_model_id, sql_model_id, embedding_model_id, approach, metadata, session, table_selection, q_mod_prompt = None, query_tabs=None, iteration_id=None, time_tracker=None, chat_model_region=None, sql_model_region=None, embedding_model_region=None):
     """Section to invoke modules to generate answers for a usecase involving database
 
     Args:
@@ -306,7 +308,7 @@ def generate_answers_db(query, query_type, messages, schema_extractor, schema_st
                         answer_gen = suggestion
                     elif error_msg == '' and table_ans.shape[0] > 0:
                         logger.debug("message: %s", messages)
-                        answer_gen, error_msg = generate_answer_en(chat_model_id, table_ans, sql_gen, messages)
+                        answer_gen, error_msg = generate_answer_en(chat_model_id, table_ans, sql_gen, messages, model_region=chat_model_region)
                     
                     time_tracker.end_process(iteration_id)
                 #logger.debug('error_msg in orc', error_msg)
@@ -315,7 +317,7 @@ def generate_answers_db(query, query_type, messages, schema_extractor, schema_st
 
             time_tracker.start_process(iteration_id, "Reasoning - Sub question generation")
 
-            modques_generator = FewShotModifierBedrock(chat_model_id)
+            modques_generator = FewShotModifierBedrock(chat_model_id, model_region=chat_model_region)
             logger.debug("Invoking Question Modifier")
             # logger.debug("Q_Mod_Prompt in generate answers db:\n", q_mod_prompt)
             try:
@@ -380,7 +382,7 @@ def generate_answers_db(query, query_type, messages, schema_extractor, schema_st
                     else:
                         time_tracker.start_process(iteration_id, "Reasoning - result_ explanation generation")
 
-                        reason_generator = FewShotReasonerBedrock(reasoner_llm)
+                        reason_generator = FewShotReasonerBedrock(reasoner_llm, model_region=chat_model_region)
                         logger.debug("Trying to generate Reasoning")
                         try:
                             answer_gen, error_msg = reason_generator.generate_reasoning(messages, query, table_ans)
@@ -399,7 +401,7 @@ def generate_answers_db(query, query_type, messages, schema_extractor, schema_st
     return answer_gen, sql_gen, error_msg, cat_gen, split_gen, prompt, table_ans, suggestion, replacement_message
 
 
-def rectify_python(model_id, question, python, sample_data, error):
+def rectify_python(model_id, question, python, sample_data, error, model_region=None):
     """Section to rectify syntax errors in python query by invoking LLMs. The python query is used to generate plots
 
     Args:
@@ -407,13 +409,14 @@ def rectify_python(model_id, question, python, sample_data, error):
         python (str): python query
         sample_data(DataFrame): the sample data on which the plot to be generated
         error(str): error message upon execution of SQL
+        model_region(str): the region for the model
     Returns: The rectified python query
     """
     python = ''
     logger.debug('Rectifying python')
     model_params = MODEL_CONF[model_id]
     prompt = rectifier_prompt_py_temp.format(question=question, py_cmd=python, syntax_error=error, sample=sample_data)
-    generator = BedrockTextGenerator(model_id, model_params)
+    generator = BedrockTextGenerator(model_id, model_params, region=model_region)
     #messages = [{"role": "user", "content":prompt }]
     messages = [{"role": "user", "content":[{"text": prompt}]}]
     text_resp, error_msg = generator.generate(prompt='Rectify the python query', input_text=messages)
@@ -422,7 +425,7 @@ def rectify_python(model_id, question, python, sample_data, error):
     return python, error_msg
 
 
-def generate_plots(query, messages, schema_extractor, db_config, plot_model_id, sql_model_id, embedding_model_id, approach, metadata, session, query_tabs=None):
+def generate_plots(query, messages, schema_extractor, db_config, plot_model_id, sql_model_id, embedding_model_id, approach, metadata, session, query_tabs=None, chat_model_region=None, sql_model_region=None, embedding_model_region=None):
     # model_id = "anthropic.claude-3-sonnet-20240229-v1:0"    
     try:
         # Ensure directories exist at the start
@@ -480,7 +483,8 @@ def generate_plots(query, messages, schema_extractor, db_config, plot_model_id, 
             if not verify_file_access(csv_path):
                 raise FileNotFoundError(f"Failed to create or access CSV file at {csv_path}")
             
-            plot_generator = DBPlottingBedrock(plot_model_id)
+            plot_generator = DBPlottingBedrock(plot_model_id, model_region=chat_model_region)
+
             python_query, error_msg = plot_generator.generate_python(query, table_ans)
             logger.debug(f"After generate_python - error_msg: {error_msg}")
             
@@ -521,7 +525,7 @@ def generate_plots(query, messages, schema_extractor, db_config, plot_model_id, 
                         else:
                             logger.debug('Running the python rectification module to correct the exception - %s', error_msg)
                             sample_data = table_ans.head(3)
-                            python_query, error_msg = rectify_python(sql_model_id, query, python_query, sample_data, error_msg)
+                            python_query, error_msg = rectify_python(sql_model_id, query, python_query, sample_data, error_msg, model_region=sql_model_region)
                             if error_msg == '':
                                 plot_gen, error_msg = plot_generator.generate_plot(python_query)
                                 # Final verification of plot file
@@ -542,11 +546,12 @@ def generate_plots(query, messages, schema_extractor, db_config, plot_model_id, 
         return None, None, None, None, f"Plot generation failed: {str(e)}"
 
 # Changes : Added default argument query_prompt to question_intent() function
-def question_intent(model_id, messages, query_prompt = intent_prompt, schema_str = "", guardrail=False):
+def question_intent(model_id, messages, query_prompt = intent_prompt, schema_str = "", guardrail=False, model_region=None):
     """This function invokes LLM to identify the nature of a question -  greetings or a question requiring SQL generation
 
     Args:
         question (str): the current question
+        model_region(str): the region for the model
     Returns: Yes or No corresponding to whether the question requires code to be generated or related to casual conversation
     """
     # messages = []
@@ -557,7 +562,7 @@ def question_intent(model_id, messages, query_prompt = intent_prompt, schema_str
     model_params = MODEL_CONF[model_id]
     # messages = [{"role": "user", "content":[{"text": question}]}]
     #query_prompt = QUESTION_INTENT
-    generator = BedrockTextGenerator(model_id, model_params)
+    generator = BedrockTextGenerator(model_id, model_params, region=model_region)
     answer, error_msg = generator.generate(prompt=query_prompt.format(schema_str=schema_str), input_text=messages, apply_guardrail=True)
     if error_msg == '':
         logger.debug('answer intent: %s', answer)

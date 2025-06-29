@@ -21,10 +21,11 @@ base_dir = os.path.dirname(__file__)
 class FewShotTabBedrock():
     _allowed_model_ids = MODEL_CONF.keys()
     
-    def __init__(self, modelid):
+    def __init__(self, modelid, model_region: str = None):
         if modelid not in self._allowed_model_ids:
             raise ValueError(f'Error: model_id should be chosen from {self._allowed_model_ids}')
         self.modelid = modelid
+        self.model_region = model_region
         self.model_params = MODEL_CONF[modelid]
 
     def create_schema_meta(self, schema, tab_meta, col_meta, metric_meta=None):
@@ -124,7 +125,7 @@ class FewShotTabBedrock():
         prompt, error_msg = self.create_prompt()
         if prompt != '':
         #print('prompt table', prompt)
-            tab_generator = BedrockTextGenerator(self.modelid, self.model_params)
+            tab_generator = BedrockTextGenerator(self.modelid, self.model_params, region=self.model_region)
             text_resp, error_msg = tab_generator.generate(input_text=messages, prompt=prompt)
             if error_msg == '':
                 print('table_extraction_resp', text_resp)

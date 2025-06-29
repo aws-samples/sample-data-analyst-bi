@@ -82,8 +82,11 @@ metadata_table_access = app.node.try_get_context("metadata_table_access")
 
 # Model configuration
 sql_model_id = app.node.try_get_context("sql_model_id")
+sql_model_region = app.node.try_get_context("sql_model_region")
 chat_model_id = app.node.try_get_context("chat_model_id")
+chat_model_region = app.node.try_get_context("chat_model_region")
 embedding_model_id = app.node.try_get_context("embedding_model_id")
+embedding_model_region = app.node.try_get_context("embedding_model_region")
 approach = app.node.try_get_context("approach")
 api_db_type = app.node.try_get_context("api_db_type")
 
@@ -148,8 +151,11 @@ if vpc_id:
         metadata_metric_meta=metadata_metric_meta,
         metadata_table_access=metadata_table_access,
         sql_model_id=sql_model_id,
+        sql_model_region=sql_model_region,
         chat_model_id=chat_model_id,
+        chat_model_region=chat_model_region,
         embedding_model_id=embedding_model_id,
+        embedding_model_region=embedding_model_region,
         approach=approach,
         env=env
     )
@@ -179,8 +185,11 @@ else:
         metadata_metric_meta=metadata_metric_meta,
         metadata_table_access=metadata_table_access,
         sql_model_id=sql_model_id,
+        sql_model_region=sql_model_region,
         chat_model_id=chat_model_id,
+        chat_model_region=chat_model_region,
         embedding_model_id=embedding_model_id,
+        embedding_model_region=embedding_model_region,
         approach=approach,
         env=env
     )
@@ -233,8 +242,11 @@ if vpc_id:
         metadata_metric_meta=metadata_metric_meta,
         metadata_table_access=metadata_table_access,
         sql_model_id=sql_model_id,
+        sql_model_region=sql_model_region,
         chat_model_id=chat_model_id,
+        chat_model_region=chat_model_region,
         embedding_model_id=embedding_model_id,
+        embedding_model_region=embedding_model_region,
         approach=approach,
         domain_name=domain_name,
         hosted_zone_id=hosted_zone_id,
@@ -268,8 +280,11 @@ else:
         metadata_metric_meta=metadata_metric_meta,
         metadata_table_access=metadata_table_access,
         sql_model_id=sql_model_id,
+        sql_model_region=sql_model_region,
         chat_model_id=chat_model_id,
+        chat_model_region=chat_model_region,
         embedding_model_id=embedding_model_id,
+        embedding_model_region=embedding_model_region,
         approach=approach,
         domain_name=domain_name,
         hosted_zone_id=hosted_zone_id,

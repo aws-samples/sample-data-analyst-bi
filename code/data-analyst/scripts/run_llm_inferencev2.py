@@ -26,16 +26,18 @@ from scripts.utils import log_error
     
 class BedrockTextGenerator():
     
-    def __init__(self, modelid, params):
+    def __init__(self, modelid, params, region=None):
         self.modelid = modelid
         self.model_params = params
+        # Use provided region or fall back to AWS_REGION from config
+        self.region = region or AWS_REGION
         self.config = Config(
             retries = {
                 'max_attempts': 10,
                 'mode': 'adaptive'
             }
         )
-        self.bedrock_client = boto3.client("bedrock-runtime", region_name=AWS_REGION, config=self.config)
+        self.bedrock_client = boto3.client("bedrock-runtime", region_name=self.region, config=self.config)
 
         try:
             self.guardrail_config = {

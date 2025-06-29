@@ -19,10 +19,11 @@ class FewShotClfBedrock():
 
     _allowed_model_ids = MODEL_CONF.keys()
     
-    def __init__(self, modelid: str):
+    def __init__(self, modelid: str, model_region: str = None):
         if modelid not in self._allowed_model_ids:
             raise ValueError(f'Error: model_id should be chosen from {self._allowed_model_ids}')
         self.modelid = modelid
+        self.model_region = model_region
         self.model_params = MODEL_CONF[modelid]
 
     def create_fshot_prompt(self, question: str) -> str:
@@ -56,7 +57,7 @@ class FewShotClfBedrock():
         """
         qtype_gen = ''
         prompt = self.create_fshot_prompt(question)
-        qtype_generator = BedrockTextGenerator(self.modelid, self.model_params)
+        qtype_generator = BedrockTextGenerator(self.modelid, self.model_params, region=self.model_region)
         text_resp, error_msg = qtype_generator.generate(input_text=question, prompt=prompt)
         if error_msg == '':
             qtype_gen = extract_data(text_resp)

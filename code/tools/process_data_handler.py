@@ -7,8 +7,8 @@ import pandas as pd
 import openpyxl
 from openpyxl.styles import Font
 
-AWS_REGION = 'ap-southeast-2'
-MODEL_ID='anthropic.claude-3-sonnet-20240229-v1:0'
+AWS_REGION = os.getenv('AWS_DEFAULT_REGION', 'ap-southeast-2')
+MODEL_ID = os.getenv('CHAT_MODEL_ID', 'anthropic.claude-3-sonnet-20240229-v1:0')
 BUCKET_NAME = os.environ.get('S3_BUCKET_NAME')
 s3_client = boto3.client('s3')
 

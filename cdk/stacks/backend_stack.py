@@ -74,8 +74,11 @@ class BackendStack(Stack):
                  metadata_metric_meta: str = "schema/metrics.xlsx",
                  metadata_table_access: str = "",
                  sql_model_id: str = "anthropic.claude-3-sonnet-20240229-v1:0",
+                 sql_model_region: str = "us-east-1",
                  chat_model_id: str = "anthropic.claude-3-haiku-20240307-v1:0",
+                 chat_model_region: str = "us-east-1",
                  embedding_model_id: str = "cohere.embed-multilingual-v3",
+                 embedding_model_region: str = "us-east-1",
                  approach: str = "few_shot",
                  **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -96,8 +99,11 @@ class BackendStack(Stack):
         
         # Store model configuration parameters  
         self.sql_model_id = sql_model_id
+        self.sql_model_region = sql_model_region
         self.chat_model_id = chat_model_id
+        self.chat_model_region = chat_model_region
         self.embedding_model_id = embedding_model_id
+        self.embedding_model_region = embedding_model_region
         self.approach = approach
         
         logger.debug(f"Initializing BackendStack for project: {project_name}")
@@ -160,7 +166,17 @@ class BackendStack(Stack):
         # Create Lambda functions and API Gateway
         self._create_lambda_functions()
         self._create_api_gateway()
-        self._create_bedrock_guardrail(guardrail_name)
+        
+        # Try to create Bedrock guardrail, but don't fail deployment if it fails
+        try:
+            self._create_bedrock_guardrail(guardrail_name)
+        except Exception as e:
+            logger.warning(f"Bedrock guardrail creation failed, continuing without guardrail: {e}")
+            # Set default environment variables for guardrail
+            self.data_analyst_lambda.add_environment("GUARDRAIL_ID", "")
+            self.data_analyst_lambda.add_environment("GUARDRAIL_VERSION", "")
+            self.process_data_lambda.add_environment("GUARDRAIL_ID", "")
+            self.process_data_lambda.add_environment("GUARDRAIL_VERSION", "")
 
         # Create Step Functions workflow (after all Lambda functions are created)
         self._create_step_functions_workflow()
@@ -648,8 +664,11 @@ class BackendStack(Stack):
         # Create metadata dictionary for model configurations (with defaults)
         metadata_dict = {
             "sql_model_id": self.sql_model_id,
+            "sql_model_region": self.sql_model_region,
             "chat_model_id": self.chat_model_id,
+            "chat_model_region": self.chat_model_region,
             "embedding_model_id": self.embedding_model_id,
+            "embedding_model_region": self.embedding_model_region,
             "approach": self.approach
         }
         
@@ -692,8 +711,11 @@ class BackendStack(Stack):
                 "ACTIVE_DB_CONFIG": json.dumps(db_config_dict),
                 "METADATA_CONFIG": json.dumps(metadata_config),
                 "SQL_MODEL_ID": metadata_dict["sql_model_id"],
+                "SQL_MODEL_REGION": metadata_dict["sql_model_region"],
                 "CHAT_MODEL_ID": metadata_dict["chat_model_id"],
+                "CHAT_MODEL_REGION": metadata_dict["chat_model_region"],
                 "EMBEDDING_MODEL_ID": metadata_dict["embedding_model_id"],
+                "EMBEDDING_MODEL_REGION": metadata_dict["embedding_model_region"],
                 "APPROACH": metadata_dict["approach"],
                 "S3_BUCKET_NAME": self.application_bucket.bucket_name,
                 "PROJECT_NAME": self.project_name,
@@ -726,8 +748,11 @@ class BackendStack(Stack):
                 "ACTIVE_DB_CONFIG": json.dumps(db_config_dict),
                 "METADATA_CONFIG": json.dumps(metadata_config),
                 "SQL_MODEL_ID": metadata_dict["sql_model_id"],
+                "SQL_MODEL_REGION": metadata_dict["sql_model_region"],
                 "CHAT_MODEL_ID": metadata_dict["chat_model_id"],
+                "CHAT_MODEL_REGION": metadata_dict["chat_model_region"],
                 "EMBEDDING_MODEL_ID": metadata_dict["embedding_model_id"],
+                "EMBEDDING_MODEL_REGION": metadata_dict["embedding_model_region"],
                 "APPROACH": metadata_dict["approach"],
                 "S3_BUCKET_NAME": self.application_bucket.bucket_name,
                 "PROJECT_NAME": self.project_name,
@@ -1166,51 +1191,137 @@ class BackendStack(Stack):
         logger.debug("API Gateway created successfully with API Key authentication")
 
     def _create_bedrock_guardrail(self, guardrail_name):
-        """Create Bedrock guardrail for AI safety."""
+        """Create Bedrock guardrail for AI safety in the chat model region."""
         logger.debug("Creating Bedrock guardrail...")
         
         try:
-            self.bedrock_guardrail = bedrock.CfnGuardrail(
-                self, "BedrockGuardrail",
-                name=guardrail_name,
-                description=f"Guardrail for {self.project_name} to ensure safe AI interactions",
-                blocked_input_messaging="This input is not allowed by our content policy.",
-                blocked_outputs_messaging="This output is not allowed by our content policy.",
-                content_policy_config=bedrock.CfnGuardrail.ContentPolicyConfigProperty(
-                    filters_config=[
-                        bedrock.CfnGuardrail.ContentFilterConfigProperty(
-                            input_strength="HIGH",
-                            output_strength="HIGH",
-                            type="HATE"
-                        ),
-                        bedrock.CfnGuardrail.ContentFilterConfigProperty(
-                            input_strength="HIGH",
-                            output_strength="HIGH",
-                            type="VIOLENCE"
-                        ),
-                        bedrock.CfnGuardrail.ContentFilterConfigProperty(
-                            input_strength="HIGH",
-                            output_strength="HIGH",
-                            type="SEXUAL"
-                        ),
-                        bedrock.CfnGuardrail.ContentFilterConfigProperty(
-                            input_strength="HIGH",
-                            output_strength="HIGH",
-                            type="MISCONDUCT"
-                        )
-                    ]
+            # Create a Lambda function to create the guardrail in the chat model region
+            guardrail_lambda = _lambda.Function(
+                self, "GuardrailLambda",
+                runtime=_lambda.Runtime.PYTHON_3_10,
+                handler="index.handler",
+                timeout=Duration.minutes(5),
+                code=_lambda.Code.from_inline(f"""
+import json
+import boto3
+import urllib3
+import time
+import traceback
+
+def send_response(event, context, response_status, response_data=None):
+    \"\"\"Send response to CloudFormation custom resource\"\"\"
+    if response_data is None:
+        response_data = {{}}
+    
+    response_url = event['ResponseURL']
+    response_body = {{
+        'Status': response_status,
+        'Reason': f'See CloudWatch Log Stream: {{context.log_stream_name}}',
+        'PhysicalResourceId': context.log_stream_name,
+        'StackId': event['StackId'],
+        'RequestId': event['RequestId'],
+        'LogicalResourceId': event['LogicalResourceId'],
+        'Data': response_data
+    }}
+    
+    json_response_body = json.dumps(response_body)
+    headers = {{
+        'content-type': '',
+        'content-length': str(len(json_response_body))
+    }}
+    
+    try:
+        http = urllib3.PoolManager()
+        response = http.request('PUT', response_url, body=json_response_body, headers=headers)
+        print(f"Status code: {{response.status}}")
+    except Exception as e:
+        print(f"Failed to send response: {{e}}")
+
+def handler(event, context):
+    try:
+        print(f"Event: {{json.dumps(event, default=str)}}")
+        
+        guardrail_name = event['ResourceProperties']['GuardrailName']
+        project_name = event['ResourceProperties']['ProjectName']
+        chat_model_region = event['ResourceProperties']['ChatModelRegion']
+        
+        print(f"Creating Bedrock client for region: {{chat_model_region}}")
+        
+        # Create Bedrock client in the chat model region
+        try:
+            bedrock_client = boto3.client('bedrock', region_name=chat_model_region)
+            
+            # Test if Bedrock is available in this region
+            bedrock_client.list_foundation_models()
+            print(f"Bedrock is available in region {{chat_model_region}}")
+            
+        except Exception as region_error:
+            print(f"Bedrock not available in region {{chat_model_region}}: {{str(region_error)}}")
+            send_response(event, context, 'FAILED', {{'Error': f'Bedrock not available in region {{chat_model_region}}: {{str(region_error)}}'}})
+            if guardrail_id and guardrail_id != context.log_stream_name:
+                try:
+                    print(f"Deleting guardrail {{guardrail_id}} in region {{chat_model_region}}")
+                    bedrock_client.delete_guardrail(guardrailIdentifier=guardrail_id)
+                    print(f"Guardrail {{guardrail_id}} deleted successfully")
+                except Exception as e:
+                    print(f"Error deleting guardrail: {{e}}")
+                    # Don't fail the deletion even if guardrail deletion fails
+            
+            send_response(event, context, 'SUCCESS')
+            
+        elif event['RequestType'] == 'Update':
+            # For updates, we'll just return the existing values
+            send_response(event, context, 'SUCCESS', {{
+                'GuardrailId': event.get('OldResourceProperties', {{}}).get('GuardrailId', ''),
+                'GuardrailVersion': event.get('OldResourceProperties', {{}}).get('GuardrailVersion', '')
+            }})
+            
+    except Exception as e:
+        print(f"Error: {{str(e)}}")
+        print(f"Traceback: {{traceback.format_exc()}}")
+        send_response(event, context, 'FAILED', {{'Error': str(e)}})
+"""),
+                environment={{
+                    "PYTHONPATH": "/var/runtime"
+                }}
+            )
+            guardrail_lambda.add_to_role_policy(
+                iam.PolicyStatement(
+                    effect=iam.Effect.ALLOW,
+                    actions=[
+                        "bedrock:CreateGuardrail",
+                        "bedrock:DeleteGuardrail",
+                        "bedrock:GetGuardrail",
+                        "bedrock:UpdateGuardrail"
+                    ],
+                    resources=["*"]
                 )
             )
             
+            # Create the custom resource
+            self.bedrock_guardrail_custom_resource = CustomResource(
+                self, "BedrockGuardrailCustomResource",
+                service_token=guardrail_lambda.function_arn,
+                properties={
+                    "GuardrailName": guardrail_name,
+                    "ProjectName": self.project_name,
+                    "ChatModelRegion": self.chat_model_region
+                }
+            )
+            
+            # Get the guardrail ID and version from the custom resource
+            guardrail_id = self.bedrock_guardrail_custom_resource.get_att_string("GuardrailId")
+            guardrail_version = self.bedrock_guardrail_custom_resource.get_att_string("GuardrailVersion")
+            
             # Update data-analyst Lambda function environment variables with guardrail info
-            self.data_analyst_lambda.add_environment("GUARDRAIL_ID", self.bedrock_guardrail.attr_guardrail_id)
-            self.data_analyst_lambda.add_environment("GUARDRAIL_VERSION", self.bedrock_guardrail.attr_version)
+            self.data_analyst_lambda.add_environment("GUARDRAIL_ID", guardrail_id)
+            self.data_analyst_lambda.add_environment("GUARDRAIL_VERSION", guardrail_version)
             
             # Update process-data Lambda function environment variables with guardrail info
-            self.process_data_lambda.add_environment("GUARDRAIL_ID", self.bedrock_guardrail.attr_guardrail_id)
-            self.process_data_lambda.add_environment("GUARDRAIL_VERSION", self.bedrock_guardrail.attr_version)
+            self.process_data_lambda.add_environment("GUARDRAIL_ID", guardrail_id)
+            self.process_data_lambda.add_environment("GUARDRAIL_VERSION", guardrail_version)
             
-            logger.debug("Bedrock guardrail created successfully")
+            logger.debug("Bedrock guardrail created successfully in chat model region")
         except Exception as e:
             logger.warning(f"Failed to create Bedrock guardrail: {e}") 
 
