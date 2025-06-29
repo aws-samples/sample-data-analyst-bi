@@ -417,8 +417,10 @@ http://localhost:8080
 ./view_logs.sh streamlit
 ```
 ## Testing Guide
-
 [Testing](Testing.md) - Guide on what parameters, techniques to leverage for better performance and troubleshooting issues
+
+## Demo
+[Demo](Demo.mov) - A recorded demo of the asset
 
 ## 🚨 Troubleshooting
 
