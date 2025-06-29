@@ -321,7 +321,7 @@ The vector store is used for storing the fewshot examples.
 ```
 # Migrating sqlite db to RDS Postgres
 ```bash
-User can migrate the data from sqlite to RDS Postgres using the utitlies available inside the tools/ directory
+Users can migrate the data from sqlite to RDS Postgres using the utitlies available inside the tools/ directory
 
 1. Ensure that the RDS database connection parameters are correctly set in the tools/config.py inside the tools folder
 2. The sub-folder - sqlite_dbs must be there inside the tools folder and the database having extension - .sqlite must be available inside the sqlite_dbs sub-folder
@@ -329,6 +329,13 @@ User can migrate the data from sqlite to RDS Postgres using the utitlies availab
 4. Open a terminal in sagemaker and type (1).pip install -r requirements.txt and then (2). python migrate_data_sqlite_postgres.py and select "all" when prompted
 5. The sqlite tables will be migrated to RDS postgres
 ```
+
+# Migrating sqlite db to CSV format(for Athena)
+```bash
+Users can convert the data from sqlite to csv format required for Athena using the utitlies available inside the tools/ directory
+
+1. In a command terminal inside Sagemaker notebook instance, type python convert_sqlite_to_S3DB.py
+2. The sqlite tables will be converted to csv format.
 
 # Monitoring
 
