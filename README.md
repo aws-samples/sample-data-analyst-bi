@@ -1,6 +1,12 @@
 # Data Analyst Platform 🚀
 
+# Table of contents
+[[_TOC_]]
+
 A full-stack AWS data analysis platform with AI-powered SQL generation, featuring serverless backend processing and a secure Streamlit frontend interface.
+
+## Demo
+![data-analyst](Demo.mov)
 
 ## 🎯 Key Features
 
