@@ -1,28 +1,34 @@
-# Data Analyst Platform 🚀
+# Data-Analyst-BI 🚀
 
-# Table of contents
-[[_TOC_]]
+A full-stack AI-powered business intelligence tool for non-experts, featuring serverless backend processing and a secure Streamlit frontend interface.
 
-A full-stack AWS data analysis platform with AI-powered SQL generation, featuring serverless backend processing and a secure Streamlit frontend interface.
+![Data Analyst BI User Interface](UI.giff)
 
 ## 🎯 Key Features
 
-- **🤖 AI-Powered**: Bedrock integration for natural language to SQL conversion
-- **⚡ Serverless Backend**: AWS Lambda functions for scalable data processing
-- **📊 Streamlit Frontend**: Interactive web interface running on ECS Fargate
-- **🗄️ Database**: PostgreSQL RDS for data storage and vector embeddings
+- **🤖 AI-Powered**: Natural language Text to SQL conversion using benchmarked LLMs
+- **🚀 Modes**: Data Extraction, Reasoning and Visualisation Questions
+- **🪄 Error-Handling**: Assumes no knowledge of data and implements LLM reflection
+- **🛡️ Guardrails**: Customisable handling of non-BI queries
+- **⚡ Serverless Backend**: AWS Lambda for scalable data processing
+- **📊 Streamlit Frontend**: Concurrent multi-user interactive web interface 
+- **🗄️ Database Support**: PostgreSQL in RDS, Aurora Serverless, Redshift, S3/Athena
+- **🗄️ Vector Database**: PostgreSQL RDS for lookup (no need to generate SQL) and Few-shot support
 - **🔐 Secure Access**: Bastion host with SSM Session Manager (no public IPs)
-- **📋 Monitoring**: CloudWatch logs for all components
+- **📋 Monitoring**: CloudWatch logs from all services for experimental debugging
+- **🧱 Customisable**: Build your own data authorisation
 
 ## 🏗️ Architecture
 
-![Data Analyst Platform Architecture](architecture.jpg)
+![Data Analyst Platform Architecture](DA_arch.png)
 
 ### Backend (Serverless)
 - **data-analyst Lambda**: Main orchestrator, handles requests and responses
 - **querybot Lambda**: Specialized SQL generation using few-shot learning
 - **Custom Layers**: Dependencies (pandas, psycopg2, s3fs, openpyxl)
 - **API Gateway**: RESTful API with API key authentication
+- **BYO-DB**: Bring your own DB - RDS, Aurora, Redshift, S3/Athena
+- **Vector-DB**: Managed vector DB for look up and Few-shot example pairs
 
 ### Frontend (Container-based)
 - **Streamlit Application**: Interactive web interface on ECS Fargate
@@ -35,6 +41,14 @@ A full-stack AWS data analysis platform with AI-powered SQL generation, featurin
 - **VPC Architecture**: Private subnets with egress and isolated subnets
 - **IAM Roles**: Least privilege access for all components
 
+## 📋 Configuration
+
+Key configuration files:
+- `cdk.json`: CDK app configuration and VPC settings
+- `layers/requirements.txt`: Lambda layer dependencies  
+- `streamlit/`: Frontend application configuration
+- Environment variables set via CDK deployment
+
 ## ⚡ Get Started
 ### Prerequisites
 
@@ -44,17 +58,142 @@ A full-stack AWS data analysis platform with AI-powered SQL generation, featurin
 #### Required Software
 - **Python 3.10+**: [Download](https://www.python.org/downloads/) | Check: `python --version`
 - **AWS CLI v2.x**: [Install Guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) | Check: `aws --version`
+- **Session Manager Plugin for AWS CLI**: [Install Guide](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html) | Check: Type `session-manager-plugin` 
 - **Node.js 16+**: [Download](https://nodejs.org/en/download/) | Check: `node --version`
-- **AWS CDK CLI v2.x**: Install: `npm install -g aws-cdk` | Check: `cdk --version`
+- **AWS CDK CLI v2.1019.2x**: Install: `npm install -g aws-cdk@latest` | Check: `cdk --version`
 - **Docker**: [Install Guide](https://docs.docker.com/get-docker/) | Check: `docker --version`
 
 #### AWS Account Requirements
 - **AWS Account**: With programmatic access enabled
-- **AWS Region**: Must support Bedrock, ECS, Lambda, RDS (recommend us-east-1 or us-west-2)
-- **Existing VPC**: Must have properly configured subnets (details in step 1)
+- **AWS Region**: Must support Bedrock (recommend us-east-1 or us-west-2), ECS, Lambda, RDS 
+- **Existing VPC**: Must have properly configured subnets detailed in Scenario 2 below (if want to create from scratch use Scenario 1)
 - **Metadata S3 Bucket**: Must pre-exist (if using S3-Athena, CSVs have to be placed here)
 
-### Step 1: Verify Infrastructure Prerequisites
+## Deployment Scenarios
+
+<details>
+
+<summary>
+<b>Scenario 1: Have Poweruser Role To Deploy AWS Infra </b> </summary>
+
+
+In this scenario you have AWS admin or poweruser role to allow the CDK to create and deploy VPCs, SubNets etc. Hence, you can just leave the empty strings empty in the cdk.json file and all those will be created during deployment. But do not forget to set your data / DB related permissions in the `cdk.json` (described later). If you forget to do it in the `cdk.json` there is a way to fix it also which will require you to go into the lambda code (described later).
+
+#### Step 1: Download Code and Setup Local Environment
+
+```bash
+git clone <repository-url>  # Clone repository
+cd data-analyst-bi 
+
+# Install CDK dependencies
+cd cdk && pip install -r requirements.txt && cd ..
+
+# configure aws profile: this will enable you to talk to your aws services using the profile data-analyst
+aws configure --profile data-analyst
+```
+#### Step 2: Set DB Configurations
+
+**REQUIRED Database Configuration:**
+
+These configurations can be set in the `cdk/cdk.json` file before deploying.
+- `db_name`: Fewshot DB name. Can be any name you decide as a new RDS instance will be created (REQUIRED) 
+- `db_username`: Fewshot DB user name. Can be any name you decide as a new RDS instance will be created(REQUIRED)
+- `db_password`: Fewshot DB password. Can be any password you decide as a new RDS instance will be created (REQUIRED)
+- `api_db_host`: Existing Redshift / RDS database host URL. Leave empty for S3 / Athena (REQUIRED)
+- `api_db_port`: Existing Redshift (5439) / RDS (5432) database port. No port for S3 / Athena (REQUIRED)
+- `api_db_name`: Existing Redshift / RDS database name. Provide S3 bucket name for S3 / Athena (REQUIRED)
+- `api_db_user`: Existing Redshift / RDS database user name. Empty for S3 / Athena (REQUIRED)
+- `api_db_password`: Existing Redshift / RDS database password. Empty for S3 / Athena (REQUIRED)
+- `api_db_type`: Database type - `postgresql` (for RDS), `redshift`, or `s3` (REQUIRED)
+
+**OPTIONAL Metadata and Model Configurations:**
+
+These configurations can be set in the `cdk/cdk.json` file before deploying.
+- `sql_model_region`: AWS region for accessing the models
+- `chat_model_region`: AWS region for accessing the models
+- `embedding_model_region`: AWS region for accessing the models
+- `sql_model_id`: Bedrock model for SQL generation
+- `chat_model_id`: Bedrock model for chat responses  
+- `embedding_model_id`: Bedrock model for vector embeddings
+- `approach`: Examples selection method (`few_shot` or `zero_shot`)
+- `metadata_s3_bucket`: S3 bucket for metadata (must pre-exist)
+- `metadata_is_meta`: Enable metadata-driven schema discovery
+- `metadata_table_meta`: S3 key for table metadata Excel file
+- `metadata_column_meta`: S3 key for column metadata Excel file
+
+`sql_model_region`, `chat_model_region` and `embedding_model_region` can be the same.
+
+**OPTIONAL Model Configurations:**
+
+These configurations can be set in the `streamlit/UI/config.py` file before deployment.
+
+- `plot_model_id`: Bedrock model for generating visualisation code
+- `expl_model_id`: Bedrock model for explaining results from data
+
+
+
+#### Step 3: Deploy all stacks (this will take 15-30 minutes)
+
+Make sure that the docker daemon is running in the background locally. Verify using `docker --version`.
+
+```bash
+
+# Set environment variable for all subsequent commands
+export AWS_PROFILE=data-analyst
+
+# Verify configuration
+aws sts get-caller-identity
+
+# Deploy stack
+./deploy.sh deploy 
+
+# Check deployment status
+./deploy.sh status
+
+```
+
+#### Step 4: Connect with Deployed Application
+
+```bash
+
+# Create SSH tunnel to bastion host (includes key setup)
+./ssh_tunnel.sh
+
+# The script will:
+# 1. Create temporary EC2 Instance Connect key pair
+# 2. Push public key to bastion host
+# 3. Create SSH tunnel on port 8080
+# 4. Display access instructions
+```
+
+#### Step 5: Access Web Interface
+
+```bash
+# Open your browser to:
+http://localhost:8080
+```
+</details>
+
+<details>
+
+<summary>
+<b>Scenario 2: Do not Have Poweruser Role to Deploy AWS Infra </b> </summary>
+
+
+In this scenario you do not have AWS admin or poweruser role to allow the CDK to create and deploy VPCs, SubNets etc. Someone with such an Admin role needs to create the VPC, SubNets etc for you and provide you with the essential IDs that you need to fill into your cdk.json file and deploy the application. 
+
+Or else the Admin can deploy the solution for you using Scenario 1 and give you the `Access Key` and `Secret Key` for you to create the profile `data_analyst` to access the application.
+
+Whoever is deploying do not forget to set your data / DB related permissions in the `cdk.json` (described later). If you forget to do it in the `cdk.json` there is a way to fix it also which will require you to go into the lambda code (described later).
+
+**Core Services Required:**
+- **Infrastructure**: CloudFormation, IAM, VPC/EC2, S3
+- **Compute**: Lambda, ECS, Application Load Balancer
+- **Database**: RDS, DynamoDB, Athena, Glue
+- **AI/API**: Bedrock, API Gateway, Step Functions
+- **Monitoring**: CloudWatch Logs, Systems Manager, EventBridge
+
+#### Step 1: Verify Infrastructure Prerequisites
 
 **Required Infrastructure:**
 - **VPC**: Existing VPC with proper DNS resolution enabled
@@ -80,9 +219,8 @@ A full-stack AWS data analysis platform with AI-powered SQL generation, featurin
 - `DNS (53 UDP/TCP)` → 0.0.0.0/0: Name resolution
 - `All Traffic` → Self-reference: Inter-service communication
 
-### Step 2: Configure AWS CLI & Permissions
+#### Step 2: Configure AWS CLI & Permissions
 
-#### Set Up AWS Profile
 ```bash
 # Configure a dedicated profile
 aws configure --profile data-analyst
@@ -99,23 +237,20 @@ aws sts get-caller-identity
 > [!TIP]
 > For development environments, use AWS managed policies. For production, implement least-privilege policies.
 
-**Development Quick Setup:**
+<details>
+<summary><b>Permissions: For Quick Setup</b></summary>
+
 ```bash
 # Attach these managed policies to your IAM user/role:
 - PowerUserAccess
 - IAMFullAccess  
 - CloudWatchLogsFullAccess
 ```
+</details>
 
-**Core Services Required:**
-- **Infrastructure**: CloudFormation, IAM, VPC/EC2, S3
-- **Compute**: Lambda, ECS, Application Load Balancer
-- **Database**: RDS, DynamoDB, Athena, Glue
-- **AI/API**: Bedrock, API Gateway, Step Functions
-- **Monitoring**: CloudWatch Logs, Systems Manager, EventBridge
 
 <details>
-<summary><b>Production Policy Example</b></summary>
+<summary><b>Permissions: Production Policy Example</b></summary>
 
 ```json
 {
@@ -153,7 +288,7 @@ aws sts get-caller-identity
 </details>
 
 <details>
-<summary><b>Post-Deployment Minimal Role Policy</b></summary>
+<summary><b>Permissions: Post-Deployment Minimal Role Policy</b></summary>
 
 > [!TIP]
 > Use this policy for day-to-day operations after deployment. It provides access to manage the service without full deployment permissions.
@@ -297,24 +432,27 @@ aws sts get-caller-identity
 
 #### Verify Access
 ```bash
-# Test key service access
-aws cloudformation list-stacks --region us-east-1
+# Test key service access 
+# for deployment below us-east-1 is an example, use the region where you deployed
+# Note: region in which you will access Bedrock is by default us-east-1
+
+aws cloudformation list-stacks --region us-east-1  
 aws ec2 describe-vpcs --region us-east-1  
 aws bedrock list-foundation-models --region us-east-1
 ```
+Once you have set up the AWS infrastructure lets deploy the application
 
-### Step 3: Project Setup
+#### Step 3: Clone Repo and set up Local environment
 
-#### Clone Repository
 ```bash
 git clone <repository-url>
-cd sample-data-analyst
+cd data-analyst-bi
 
 # Install CDK dependencies
 cd cdk && pip install -r requirements.txt && cd ..
 ```
 
-### Step 4: Configuration
+#### Step 4: Setup Configuration in cdk.json
 
 > [!IMPORTANT]
 > - All REQUIRED fields must be provided
@@ -323,11 +461,8 @@ cd cdk && pip install -r requirements.txt && cd ..
 > - Database credentials must be valid and accessible
 > - Bedrock models must be enabled in your region
 
-#### Edit Configuration File
 
-Edit values in `cdk/cdk.json`:
-
-#### Configuration Reference
+Edit values in `cdk/cdk.json`. Here is a reference to the different configurationvalues in cdk.json
 
 **REQUIRED Core Infrastructure:**
 - `project_name`: Base name for all AWS resources
@@ -337,17 +472,24 @@ Edit values in `cdk/cdk.json`:
 - `security_group_id`: Security group with proper rules (REQUIRED)
 
 **REQUIRED Database Configuration:**
-- `db_username`: PostgreSQL master username (REQUIRED)
-- `db_name`: PostgreSQL database name (REQUIRED)  
-- `db_password`: PostgreSQL master password (REQUIRED)
-- `api_db_host`: External database hostname (REQUIRED)
-- `api_db_port`: External database port (REQUIRED)
-- `api_db_name`: External database name (REQUIRED)
-- `api_db_user`: External database username (REQUIRED)
-- `api_db_password`: External database password (REQUIRED)
-- `api_db_type`: Database type - `postgresql`, `redshift`, or `s3` (REQUIRED)
 
-**OPTIONAL Configuration:**
+These configurations can be set in the `cdk/cdk.json` file before deploying.
+- `db_name`: Fewshot DB name. Can be any name you decide (REQUIRED) 
+- `db_username`: Fewshot DB user name. Can be any name you decide (REQUIRED)
+- `db_password`: Fewshot DB password. Can be any name you decide (REQUIRED)
+- `api_db_host`: Redshift / RDS database host URL. Leave empty for S3 / Athena (REQUIRED)
+- `api_db_port`: Redshift (5439) / RDS (5432) database port. No port for S3 / Athena (REQUIRED)
+- `api_db_name`: Redshift / RDS database name. Provide S3 bucket name for S3 / Athena (REQUIRED)
+- `api_db_user`: Redshift / RDS database user name. Empty for S3 / Athena (REQUIRED)
+- `api_db_password`: Redshift / RDS database password. Empty for S3 / Athena (REQUIRED)
+- `api_db_type`: Database type - `postgresql` (for RDS), `redshift`, or `s3` (REQUIRED)
+
+**OPTIONAL Metadata and Model Configurations:**
+
+These configurations can be set in the `cdk/cdk.json` file before deploying.
+- `sql_model_region`: AWS region for accessing the models
+- `chat_model_region`: AWS region for accessing the models
+- `embedding_model_region`: AWS region for accessing the models
 - `sql_model_id`: Bedrock model for SQL generation
 - `chat_model_id`: Bedrock model for chat responses  
 - `embedding_model_id`: Bedrock model for vector embeddings
@@ -356,6 +498,16 @@ Edit values in `cdk/cdk.json`:
 - `metadata_is_meta`: Enable metadata-driven schema discovery
 - `metadata_table_meta`: S3 key for table metadata Excel file
 - `metadata_column_meta`: S3 key for column metadata Excel file
+
+`sql_model_region`, `chat_model_region` and `embedding_model_region` can be the same.
+
+**OPTIONAL Model Configurations:**
+
+These configurations can be set in the `streamlit/UI/config.py` file before deployment.
+
+- `plot_model_id`: Bedrock model for generating visualisation code
+- `expl_model_id`: Bedrock model for explaining results from data
+
 
 #### Validate Configuration
 ```bash
@@ -366,12 +518,15 @@ aws ec2 describe-vpcs --vpc-ids $(grep vpc_id cdk/cdk.json | cut -d'"' -f4)
 aws bedrock list-foundation-models --region us-east-1 | grep -E "(claude-3|cohere)"
 ```
 
-### Step 5: Deploy
+#### Step 5: Deploy
 
 > [!NOTE]
 > Deployment typically takes 15-30 minutes. Monitor progress in the AWS CloudFormation console.
 
 #### Deploy Infrastructure
+
+Make sure that the docker daemon is running in the background locally. Verify using `docker --version`.
+
 ```bash
 # Deploy all stacks (this will take 15-30 minutes)
 export AWS_PROFILE=data-analyst
@@ -385,7 +540,7 @@ export AWS_PROFILE=data-analyst
 ./deploy.sh status
 ```
 
-### Step 6: Access the Application
+#### Step 6: Access the Application
 
 #### Create Secure Tunnel
 ```bash
@@ -405,7 +560,7 @@ export AWS_PROFILE=data-analyst
 http://localhost:8080
 ```
 
-### Step 7: Verify & Test
+#### Step 7: Verify & Test
 
 #### Test Data Analyst Functionality
 1. **Access Streamlit Interface**: Verify the web interface loads properly
@@ -419,13 +574,50 @@ http://localhost:8080
 ./view_logs.sh querybot
 ./view_logs.sh streamlit
 ```
-## Testing Guide
-[Testing](Testing Guide.md) - Guide on what parameters, techniques to leverage for better performance and troubleshooting issues
+</details>
 
-## Demo
-[Demo](Demo.mov) - A recorded demo of the asset
+<details>
+<summary> <b>Scenario 3: Make Changes to DB and Model Choices After Deployment</b> </summary>
 
-## 🚨 Troubleshooting
+
+After deployment it is possible to point to a different DB, metadata or change your models to a different model ID in a different region.
+
+For this you need to make changes to the `code/data-analyst/lambda_function.py` code that gets deployed as a lambda function and should be accessible from the `data_analyst_backend` stack.
+
+```code
+# The following variable carries all the DB related information
+db_conn_conf = parsed_input.get("db_conn_conf")
+
+# db_conn_conf consists of the following fields that you can fill up depending on the type of DB you are using
+# Refer to the section on Supported Database Types with the appropriate prefix like api_ pr, api_db_ removed from the key
+db_conn_conf = {
+   'db_type': #,
+   'host': #,
+   'user': #,
+   'password': #,
+   'database': #,
+   'port': #
+}
+
+# Change model ID. Note you need to provide the exact model ID available in the region and verify that 
+chat_model_id =  parsed_input.get("chat_model_id")
+sql_model_id =  parsed_input.get("sql_model_id")
+plot_model_id = parsed_input.get("plot_model_id")
+embedding_model_id = parsed_input.get("embedding_model_id")
+expl_model_id = parsed_input.get("expl_model_id")
+```
+
+Make sure to deploy the lambda function.
+
+
+
+</details>
+
+## Experimentation Guide
+
+[Testing](Testing.md) - Guide on what parameters, techniques to leverage for better performance and troubleshooting issues
+
+## 🚨 Troubleshooting Deployment Issues
 
 > [!TIP]
 > Most deployment issues are related to permissions or VPC configuration. Check these first.
@@ -506,15 +698,6 @@ docker run hello-world
 
 </details>
 
-## 🎯 Next Steps
-
-After successful deployment:
-
-1. **Configure Your Data Source**: Update database connection settings
-2. **Upload Sample Data**: Use the S3-Athena flow for CSV data
-3. **Test Query Examples**: Try various natural language queries
-4. **Monitor Performance**: Check CloudWatch dashboards
-5. **Customize Configuration**: Adjust AI models and parameters as needed
 
 ## 📊 Supported Database Types
 
@@ -560,12 +743,13 @@ After successful deployment:
 > [!TIP]
 > For S3-Athena, the metadata S3 bucket must pre-exist before deployment.
 
-**S3-Athena Workflow:**
-1. **Prepare ZIP**: Create ZIP file with folders containing CSV files
-2. **Upload via UI**: Use Streamlit interface to upload ZIP file
-3. **Automatic Processing**: System extracts, validates, and organizes data
-4. **Schema Generation**: Automatically creates database schema from CSV headers
-5. **Ready to Query**: Start asking questions about your data immediately
+## 🎯 Tools
+
+The deployment comes with a few tools that can help you prepare your data for doing further experimentation:
+
+1. Find tools for preparing a RDS database from sqlite DB in `tools` folder
+2. Find tools for preparing a S3/Athena compliant data store in the `tools` folder
+2. Find some tools for automatically generating metadata for tables and columns in the `code/tools` folder. The tool requires you to store your tables in a ZIP file with the following structure
 
 **Example ZIP Structure:**
 ```
@@ -580,6 +764,11 @@ your_database.zip
     ├── sales_2023.csv
     └── sales_2024.csv
 ```
+
+<details>
+<summary>
+<b>Deeper Insights of How the Solution Works</b>
+</summary>
 
 ## 📊 Architecture Flow
 
@@ -716,6 +905,7 @@ aws cloudformation describe-stacks --stack-name data-analyst-frontend \
   --output text --profile profile_name
 ```
 
+
 ## 🗂️ Project Structure
 
 ```
@@ -765,6 +955,7 @@ DataAnalyst/
 ├── ssh_tunnel.sh               # Secure access tunnel script
 └── view_logs.sh                # Log viewing utility
 ```
+</details>
 
 ## 🔒 Security Features
 
@@ -818,14 +1009,6 @@ aws rds describe-db-instances --db-instance-identifier data-analyst-postgres-db 
 aws secretsmanager get-secret-value --secret-id data-analyst-db-credentials --profile profile_name
 ```
 
-## 📋 Configuration
-
-Key configuration files:
-- `cdk.json`: CDK app configuration and VPC settings
-- `layers/requirements.txt`: Lambda layer dependencies  
-- `streamlit/`: Frontend application configuration
-- Environment variables set via CDK deployment
-
 ## 💡 Usage Tips
 
 - **First Time**: Allow ~5 minutes for ECS service to fully start
@@ -843,4 +1026,4 @@ Key configuration files:
 
 ## License
 
-This project is licensed under the terms of the MIT License. See the [LICENSE](./LICENSE) file for details.
+This project is licensed under the terms of the Amazon Software License. See the [LICENSE](./LICENSE) file for details.
