@@ -2,9 +2,7 @@
 
 A full-stack AI-powered business intelligence tool for non-experts, featuring serverless backend processing and a secure Streamlit frontend interface.
 
-<video width="100%" controls>
-  <source src="Demo.mov" type="video/quicktime">
-</video>
+https://github.com/user-attachments/assets/827ac4c9-9680-421a-88a7-c5dbe3cf55b8
 
 ## 🎯 Key Features
 
