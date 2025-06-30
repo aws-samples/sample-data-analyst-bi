@@ -74,11 +74,9 @@ class BackendStack(Stack):
                  metadata_metric_meta: str = "schema/metrics.xlsx",
                  metadata_table_access: str = "",
                  sql_model_id: str = "anthropic.claude-3-sonnet-20240229-v1:0",
-                 sql_model_region: str = "us-east-1",
+                 model_region: str = "us-east-1",
                  chat_model_id: str = "anthropic.claude-3-haiku-20240307-v1:0",
-                 chat_model_region: str = "us-east-1",
                  embedding_model_id: str = "cohere.embed-multilingual-v3",
-                 embedding_model_region: str = "us-east-1",
                  approach: str = "few_shot",
                  **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -99,11 +97,13 @@ class BackendStack(Stack):
         
         # Store model configuration parameters  
         self.sql_model_id = sql_model_id
-        self.sql_model_region = sql_model_region
+        self.model_region = model_region
         self.chat_model_id = chat_model_id
-        self.chat_model_region = chat_model_region
         self.embedding_model_id = embedding_model_id
-        self.embedding_model_region = embedding_model_region
+        # Use single model_region for all models
+        self.sql_model_region = model_region
+        self.chat_model_region = model_region
+        self.embedding_model_region = model_region
         self.approach = approach
         
         logger.debug(f"Initializing BackendStack for project: {project_name}")
@@ -664,11 +664,9 @@ class BackendStack(Stack):
         # Create metadata dictionary for model configurations (with defaults)
         metadata_dict = {
             "sql_model_id": self.sql_model_id,
-            "sql_model_region": self.sql_model_region,
+            "model_region": self.model_region,
             "chat_model_id": self.chat_model_id,
-            "chat_model_region": self.chat_model_region,
             "embedding_model_id": self.embedding_model_id,
-            "embedding_model_region": self.embedding_model_region,
             "approach": self.approach
         }
         
@@ -711,11 +709,9 @@ class BackendStack(Stack):
                 "ACTIVE_DB_CONFIG": json.dumps(db_config_dict),
                 "METADATA_CONFIG": json.dumps(metadata_config),
                 "SQL_MODEL_ID": metadata_dict["sql_model_id"],
-                "SQL_MODEL_REGION": metadata_dict["sql_model_region"],
+                "MODEL_REGION": metadata_dict["model_region"],
                 "CHAT_MODEL_ID": metadata_dict["chat_model_id"],
-                "CHAT_MODEL_REGION": metadata_dict["chat_model_region"],
                 "EMBEDDING_MODEL_ID": metadata_dict["embedding_model_id"],
-                "EMBEDDING_MODEL_REGION": metadata_dict["embedding_model_region"],
                 "APPROACH": metadata_dict["approach"],
                 "S3_BUCKET_NAME": self.application_bucket.bucket_name,
                 "PROJECT_NAME": self.project_name,
@@ -748,11 +744,9 @@ class BackendStack(Stack):
                 "ACTIVE_DB_CONFIG": json.dumps(db_config_dict),
                 "METADATA_CONFIG": json.dumps(metadata_config),
                 "SQL_MODEL_ID": metadata_dict["sql_model_id"],
-                "SQL_MODEL_REGION": metadata_dict["sql_model_region"],
+                "MODEL_REGION": metadata_dict["model_region"],
                 "CHAT_MODEL_ID": metadata_dict["chat_model_id"],
-                "CHAT_MODEL_REGION": metadata_dict["chat_model_region"],
                 "EMBEDDING_MODEL_ID": metadata_dict["embedding_model_id"],
-                "EMBEDDING_MODEL_REGION": metadata_dict["embedding_model_region"],
                 "APPROACH": metadata_dict["approach"],
                 "S3_BUCKET_NAME": self.application_bucket.bucket_name,
                 "PROJECT_NAME": self.project_name,
@@ -1243,24 +1237,24 @@ def handler(event, context):
         
         guardrail_name = event['ResourceProperties']['GuardrailName']
         project_name = event['ResourceProperties']['ProjectName']
-        chat_model_region = event['ResourceProperties']['ChatModelRegion']
+        model_region = event['ResourceProperties']['ModelRegion']
         
-        print(f"Creating Bedrock client for region: {{chat_model_region}}")
+        print(f"Creating Bedrock client for region: {{model_region}}")
         
-        # Create Bedrock client in the chat model region
+        # Create Bedrock client in the model region
         try:
-            bedrock_client = boto3.client('bedrock', region_name=chat_model_region)
+            bedrock_client = boto3.client('bedrock', region_name=model_region)
             
             # Test if Bedrock is available in this region
             bedrock_client.list_foundation_models()
-            print(f"Bedrock is available in region {{chat_model_region}}")
+            print(f"Bedrock is available in region {{model_region}}")
             
         except Exception as region_error:
-            print(f"Bedrock not available in region {{chat_model_region}}: {{str(region_error)}}")
-            send_response(event, context, 'FAILED', {{'Error': f'Bedrock not available in region {{chat_model_region}}: {{str(region_error)}}'}})
+            print(f"Bedrock not available in region {{model_region}}: {{str(region_error)}}")
+            send_response(event, context, 'FAILED', {{'Error': f'Bedrock not available in region {{model_region}}: {{str(region_error)}}'}})
             if guardrail_id and guardrail_id != context.log_stream_name:
                 try:
-                    print(f"Deleting guardrail {{guardrail_id}} in region {{chat_model_region}}")
+                    print(f"Deleting guardrail {{guardrail_id}} in region {{model_region}}")
                     bedrock_client.delete_guardrail(guardrailIdentifier=guardrail_id)
                     print(f"Guardrail {{guardrail_id}} deleted successfully")
                 except Exception as e:
@@ -1305,7 +1299,7 @@ def handler(event, context):
                 properties={
                     "GuardrailName": guardrail_name,
                     "ProjectName": self.project_name,
-                    "ChatModelRegion": self.chat_model_region
+                    "ModelRegion": self.model_region
                 }
             )
             

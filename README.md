@@ -1,8 +1,10 @@
-# Data-Analyst-BI 🚀
+# Data Analyst BI ✨
 
 A full-stack AI-powered business intelligence tool for non-experts, featuring serverless backend processing and a secure Streamlit frontend interface.
 
-![Data Analyst BI User Interface](Demo.mov)
+<video width="100%" controls>
+  <source src="Demo.mov" type="video/quicktime">
+</video>
 
 ## 🎯 Key Features
 
@@ -20,7 +22,7 @@ A full-stack AI-powered business intelligence tool for non-experts, featuring se
 
 ## 🏗️ Architecture
 
-![Data Analyst Platform Architecture](DA_arch.png)
+![Data Analyst Platform Architecture](architecture.png)
 
 ### Backend (Serverless)
 - **data-analyst Lambda**: Main orchestrator, handles requests and responses
@@ -109,9 +111,7 @@ These configurations can be set in the `cdk/cdk.json` file before deploying.
 **OPTIONAL Metadata and Model Configurations:**
 
 These configurations can be set in the `cdk/cdk.json` file before deploying.
-- `sql_model_region`: AWS region for accessing the models
-- `chat_model_region`: AWS region for accessing the models
-- `embedding_model_region`: AWS region for accessing the models
+- `model_region`: AWS region for accessing the models
 - `sql_model_id`: Bedrock model for SQL generation
 - `chat_model_id`: Bedrock model for chat responses  
 - `embedding_model_id`: Bedrock model for vector embeddings
@@ -120,8 +120,6 @@ These configurations can be set in the `cdk/cdk.json` file before deploying.
 - `metadata_is_meta`: Enable metadata-driven schema discovery
 - `metadata_table_meta`: S3 key for table metadata Excel file
 - `metadata_column_meta`: S3 key for column metadata Excel file
-
-`sql_model_region`, `chat_model_region` and `embedding_model_region` can be the same.
 
 **OPTIONAL Model Configurations:**
 
@@ -487,9 +485,7 @@ These configurations can be set in the `cdk/cdk.json` file before deploying.
 **OPTIONAL Metadata and Model Configurations:**
 
 These configurations can be set in the `cdk/cdk.json` file before deploying.
-- `sql_model_region`: AWS region for accessing the models
-- `chat_model_region`: AWS region for accessing the models
-- `embedding_model_region`: AWS region for accessing the models
+- `model_region`: AWS region for accessing the models
 - `sql_model_id`: Bedrock model for SQL generation
 - `chat_model_id`: Bedrock model for chat responses  
 - `embedding_model_id`: Bedrock model for vector embeddings
@@ -498,8 +494,6 @@ These configurations can be set in the `cdk/cdk.json` file before deploying.
 - `metadata_is_meta`: Enable metadata-driven schema discovery
 - `metadata_table_meta`: S3 key for table metadata Excel file
 - `metadata_column_meta`: S3 key for column metadata Excel file
-
-`sql_model_region`, `chat_model_region` and `embedding_model_region` can be the same.
 
 **OPTIONAL Model Configurations:**
 

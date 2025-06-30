@@ -305,9 +305,11 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
         approach =  parsed_input.get("approach")
         
         # Extract region information from environment variables
-        model_region = os.environ.get("SQL_MODEL_REGION", "us-east-1")
-        # chat_model_region = os.environ.get("CHAT_MODEL_REGION", "us-east-1")
-        # embedding_model_region = os.environ.get("EMBEDDING_MODEL_REGION", "us-east-1")
+        # Use MODEL_REGION for all models
+        model_region = os.environ.get("MODEL_REGION", "us-east-1")
+        sql_model_region = model_region
+        chat_model_region = model_region
+        embedding_model_region = model_region
         table_selection = parsed_input.get("table_selection")
         metadata = parsed_input.get("metadata")
         session = parsed_input.get("session")
