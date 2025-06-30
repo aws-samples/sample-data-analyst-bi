@@ -68,7 +68,7 @@ There are some parameters which can be set in the following path  - streamlit/UI
 - `cache_thresh`: 0.95 
 
 ```bash
-N.B. The caching of SQL based on approval from user is currently supported only for questions pertaining to non-plotting types
+N.B. The caching of SQL based on approval from user is currently supported only for questions pertaining to non-plotting types. Extending the caching of questions for visualization is in the road map
 ```
 
 ### Parameters set in datanalyst lambda

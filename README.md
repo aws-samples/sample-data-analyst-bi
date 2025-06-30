@@ -20,7 +20,7 @@ A full-stack AI-powered business intelligence tool for non-experts, featuring se
 
 ## 🏗️ Architecture
 
-![Data Analyst Platform Architecture](architecture.jpg)
+![Data Analyst Platform Architecture](DA_arch.png)
 
 ### Backend (Serverless)
 - **data-analyst Lambda**: Main orchestrator, handles requests and responses
