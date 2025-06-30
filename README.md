@@ -83,7 +83,7 @@ In this scenario you have AWS admin or poweruser role to allow the CDK to create
 
 ```bash
 git clone <repository-url>  # Clone repository
-cd data-analyst-bi 
+cd sample-data-analyst-bi 
 
 # Install CDK dependencies
 cd cdk && pip install -r requirements.txt && cd ..
@@ -442,7 +442,7 @@ Once you have set up the AWS infrastructure lets deploy the application
 
 ```bash
 git clone <repository-url>
-cd data-analyst-bi
+cd sample-data-analyst-bi
 
 # Install CDK dependencies
 cd cdk && pip install -r requirements.txt && cd ..
