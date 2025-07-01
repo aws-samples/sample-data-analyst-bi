@@ -1,22 +1,25 @@
 # Data Analyst BI ✨
 
-A full-stack AI-powered business intelligence tool for non-experts, featuring serverless backend processing and a secure Streamlit frontend interface.
+A full-stack AI-powered business intelligence tool for non-experts (users not familar with SQL or need help writing complex analytics queries in SQL), featuring serverless backend processing and a secure Streamlit frontend interface.
 
 https://github.com/user-attachments/assets/827ac4c9-9680-421a-88a7-c5dbe3cf55b8
 
 ## 🎯 Key Features
 
 - **🤖 AI-Powered**: Natural language Text to SQL conversion using benchmarked LLMs
-- **🚀 Modes**: Data Extraction, Reasoning and Visualisation Questions
-- **🪄 Error-Handling**: Assumes no knowledge of data and implements LLM reflection
-- **🛡️ Guardrails**: Customisable handling of non-BI queries
+- **🚀 Modes**: Data Extraction, Reasoning and Visualisation Questions ✅
+- **🪄 Error-Handling**: Assumes no knowledge of data and implements LLM reflection ✅
+- **🛡️ Guardrails**: Customisable handling of non-BI queries ✅
 - **⚡ Serverless Backend**: AWS Lambda for scalable data processing
-- **📊 Streamlit Frontend**: Concurrent multi-user interactive web interface 
-- **🗄️ Database Support**: PostgreSQL in RDS, Aurora Serverless, Redshift, S3/Athena
-- **🗄️ Vector Database**: PostgreSQL RDS for lookup (no need to generate SQL) and Few-shot support
+- **📊 Streamlit Frontend**: Concurrent multi-user interactive web interface with ability to give feedback on response ✅
+- **🗄️ Database Support**: PostgreSQL in RDS, Aurora Serverless, Redshift, S3/Athena ✅
+- **🗄️ Vector Database**: PostgreSQL RDS lookup (historical similar questions), tools for metadata expansion and Few-shot support ✅
+- **🛠️ Tools**: Code for data and metadata preparation ✅
 - **🔐 Secure Access**: Bastion host with SSM Session Manager (no public IPs)
 - **📋 Monitoring**: CloudWatch logs from all services for experimental debugging
 - **🧱 Customisable**: Build your own data authorisation
+
+Some of the unique features are highlighted by the ✅ icon.
 
 ## 🏗️ Architecture
 
@@ -1009,6 +1012,51 @@ aws secretsmanager get-secret-value --secret-id data-analyst-db-credentials --pr
 - **Logs**: Check CloudWatch for debugging both Lambda and ECS issues
 - **Security**: No permanent SSH keys required - uses EC2 Instance Connect
 
+<details>
+<summary>
+🚨 <font size="5"> <b>FAQ</b> </font>
+
+
+</summary>
+
+
+**Q: What is difference with LLM based chatbots that also generate SQL from text?**
+
+**A:** An accurate Text2SQL solution using LLMs hinges on two key components: (1) providing the LLM with the accurate context as part of the prompt and (2) implementing the ability to reflect and make at least syntactic corrections to the LLM generated query which requires ability to connect with the DB. 
+
+Out of the box, chatbots lack both these components as this can require complex integrations. For example, the context needs to be aware of the table and column descriptions, primary key, foreign key, data type and metric definitions. All this information is stored somewhere else or sometimes not available. Note that this information can be huge in size so the solution needs to be able to select the appropriate metadata relevant for the question. 
+
+Similarly, in a few shot setting specialised methods are required to describe example pairs and match it to the question. Thus, although LLM based chats can generate a SQL corresponding to a question, due to lack of relevant context and inability to self rectify it mostly hallucinates.
+
+
+**Q: Is the visualisation feature similar to LLM based data visualisation dashboarding solutions?**
+
+**A:** No. The visualisation features goal is not to provide a dashboarding experience but to complement in the ability to converse with the solution to get both textual and visual representations of the questions response. At present the visualisation cannot be updated to get different visual representations of the same data.
+
+
+**Q: Does the user need to know about the data fields and schema?**
+
+**A:** No. The solution samples data from the DB to filter and provide the LLM with values that help in avoiding the LLM hallucinating about the specific data values. In many cases this helps the solution respond to questions that are not exact on the values and expects knowledge of conversational context.
+
+**Q: Why call it a business intelligence tool and not a Text2SQL tool?**
+
+**A:** The solution goes beyond Text2SQL and aims to provide a hands-free experience for business leaders and owners to get insights on the health of their business once they connect their data repositories to it. Our solution works backward in addressing our customers most pressing business requirements.
+
+
+**Q: What are some of the roadmap features in `data-analyst-bi`?**
+
+**A:** Our focus is always on improving accuracy while reducing latency and cost. 
+
+- The present solution uses primarily AWS serverless services to reduce OPEX. 
+
+- We also provide several common sense features to reduce latency like allowing the user to state nature of the question, give feedback on approval of a response that circles back to collecting valid example pairs in fewshot setting, inturn improving the context.
+
+- Expect modules for auto generation of metadata to be added to help generate better context.
+
+- The solution presently uses closed LLM models. Future releases will implement the ability to choose and deploy open source LLM models.
+
+</details>
+
 ## Contributors
 
 - [Adithya Suresh](https://www.linkedin.com/in/adithyaxx/) - Deep Learning Architect, AWS Generative AI Innovation Center
@@ -1018,4 +1066,4 @@ aws secretsmanager get-secret-value --secret-id data-analyst-db-credentials --pr
 
 ## License
 
-This project is licensed under the terms of the Amazon Software License. See the [LICENSE](./LICENSE) file for details.
+This project is licensed under the terms of the MIT-0 License. See the [LICENSE](./LICENSE) file for details.
