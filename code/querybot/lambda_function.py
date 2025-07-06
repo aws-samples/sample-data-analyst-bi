@@ -114,15 +114,15 @@ def lambda_handler(event, context):
         try:
             st = time.time()
             sql_generator = SQLGeneratorBedrock(
-                model_id,
-                approach,
-                database_type,
-                db_conn_conf,
-                db_schema_file,
-                table_selection,
-                LLM_CONF[model_id],
-                model_region
-            )
+                    model_id=model_id,
+                    approach=approach,
+                    database=database_type,
+                    db_conn_conf=db_conn_conf,
+                    schema_file=db_schema_file,
+                    table_selection=table_selection,
+                    model_params=LLM_CONF[model_id],
+                    model_region=model_region
+                )
             end = time.time()
             logger.info(f"Creating SQLGeneratorBedrock response time: {end-st}")
         except KeyError as e:
