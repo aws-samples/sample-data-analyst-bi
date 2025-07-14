@@ -151,7 +151,7 @@ API_KEY = get_api_key_from_parameter_store()
 # API Database Configuration (for the data analysis queries sent to the API)
 API_DB_CONFIG = {
     "host": os.getenv("API_DB_HOST", ""),
-    "port": int(os.getenv("API_DB_PORT", "")),
+    "port": int(os.getenv("API_DB_PORT", 0)),
     "database": os.getenv("API_DB_NAME", ""),
     "user": os.getenv("API_DB_USER", ""),
     "password": os.getenv("API_DB_PASSWORD", ""),

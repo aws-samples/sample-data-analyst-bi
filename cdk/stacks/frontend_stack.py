@@ -445,7 +445,7 @@ class FrontendStack(Stack):
             "x86_64": ecs.CpuArchitecture.X86_64,
             "arm64": ecs.CpuArchitecture.ARM64
         }
-        architecture = platform_mapping.get(platform.machine(), ecs.CpuArchitecture.X86_64)
+        architecture = platform_mapping["arm64"]
 
         # Environment variables for the container
         environment_vars = {
