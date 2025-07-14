@@ -455,7 +455,7 @@ class FrontendStack(Stack):
             "PROJECT_NAME": self.project_name,
             # API Database configuration (external database for data analysis)
             "API_DB_HOST": self.api_db_host,
-            "API_DB_PORT": str(self.api_db_port) if self.api_db_port else "",
+            "API_DB_PORT": str(self.api_db_port),
             "API_DB_NAME": self.api_db_name,
             "API_DB_USER": self.api_db_user,
             "API_DB_PASSWORD": self.api_db_password,
