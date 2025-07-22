@@ -14,19 +14,20 @@ class Rectifier:
 
     SUPPORTED_MODELS = LLM_CONF.keys()
 
-    def __new__(cls, model_id: str, model_params: dict = None):
+    def __new__(cls, model_id: str, model_params: dict = None, model_region:str = "us-east-1"):
         if model_id not in cls.SUPPORTED_MODELS:
             raise ValueError(f'Error: {model_id} not in supported model {cls.SUPPORTED_MODELS}')
 
         return super(Rectifier, cls).__new__(cls)
 
-    def __init__(self, model_id: str, model_params: dict = None):
+    def __init__(self, model_id: str, model_params: dict = None,  model_region:str = "us-east-1"):
         self.model_id = model_id
         self.model_params = model_params
+        self.model_region = model_region
         if self.model_id.startswith('ic-'):
             self._llm = init_sagemaker_llm(self.model_id)
         else:
-            self._llm = init_bedrock_llm(self.model_id)
+            self._llm = init_bedrock_llm(self.model_id, self.model_region)
 
     def correct(self, database: str, question: str, sql: str, error: str, schema_meta:str):
         sys_prompt = BEDROCK_SYS_PROMPT.format(sql_database=database)
