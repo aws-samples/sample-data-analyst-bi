@@ -81,7 +81,7 @@ class BackendStack(Stack):
                  **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        self.template_options.description = f"{project_name} (uksb-vhbajid3y7) (tag: Backend)"
+        self.template_options.description = f"{project_name} (uksb-l248c3za8g) (tag: Backend)"
         self.project_name = project_name
         self.metadata_s3_bucket = metadata_s3_bucket
         self.db_name = db_name
