@@ -362,12 +362,7 @@ aws sts get-caller-identity
                 "ssm:DescribeSessions",
                 "ssm:GetConnectionStatus"
             ],
-            "Resource": "*",
-            "Condition": {
-                "StringEquals": {
-                    "ec2:ResourceTag/Project": "data-analyst"
-                }
-            }
+            "Resource": "*"
         },
         {
             "Sid": "ServiceMonitoring",
