@@ -71,6 +71,7 @@ class SQLiteHelper(DatabaseHelper):
         schema: str,
         llm_id: str,
         llm_params: dict,
+        model_region: str,
         rectification_attempt: int = 1,
         schema_file: str = None,
     ):
@@ -90,7 +91,7 @@ class SQLiteHelper(DatabaseHelper):
             self.conn.close()
             raise e
         try:
-            self.sql_rectifier = Rectifier(llm_id, llm_params)
+            self.sql_rectifier = Rectifier(llm_id, llm_params, model_region)
         except Exception as e:
             logger.info(e)
             self.rectification_attempt = 0
@@ -192,6 +193,7 @@ class PostgreSQLHelper(DatabaseHelper):
         schema: str,
         llm_id: str,
         llm_params: dict,
+        model_region: str,
         rectification_attempt: int = 1,
         schema_file: str = None,
     ):
@@ -213,7 +215,7 @@ class PostgreSQLHelper(DatabaseHelper):
             logger.info('PostgreSQLHelper connection error: %s', e)
             self.conn.close()
         try:
-            self.sql_rectifier = Rectifier(llm_id, llm_params)
+            self.sql_rectifier = Rectifier(llm_id, llm_params, model_region)
         except Exception as e:
             logger.info('PostgreSQLHelper rectifier initialization error: %s', e)
             self.rectification_attempt = 0
@@ -390,6 +392,7 @@ class RedshiftHelper(DatabaseHelper):
         schema: str,
         llm_id: str,
         llm_params: dict,
+        model_region: str,
         rectification_attempt: int = 1,
         schema_file: str = None,
     ):
@@ -411,7 +414,7 @@ class RedshiftHelper(DatabaseHelper):
             logger.info('RedshiftHelper connection error: %s', e)
             self.conn.close()
         try:
-            self.sql_rectifier = Rectifier(llm_id, llm_params)
+            self.sql_rectifier = Rectifier(llm_id, llm_params, model_region)
         except Exception as e:
             logger.info('RedshiftHelper rectifier initialization error: %s', e)
             self.rectification_attempt = 0
@@ -616,6 +619,7 @@ class S3AthenaHelper(DatabaseHelper):
         schema: str,
         llm_id: str,
         llm_params: dict,
+        model_region: str,
         rectification_attempt: int = 1,
         schema_file: str = None,
     ):
@@ -712,7 +716,7 @@ class S3AthenaHelper(DatabaseHelper):
                         ROW FORMAT DELIMITED
                         FIELDS TERMINATED BY ','
                         STORED AS TEXTFILE
-                        LOCATION 's3://{self.bucket_name}/{self.db_name}/data/{self.db_name}/{table_name}/'
+                        LOCATION 's3://{self.bucket_name}/{self.db_name}/data/{table_name}/'
                         TBLPROPERTIES ('skip.header.line.count'='1')
                         """
                         
@@ -873,6 +877,7 @@ def get_database_helper(
     schema: str,
     llm_id: str,
     llm_params: dict,
+    model_region: str,
     rectification_attempt: int = 1,
     schema_file: str = None,
 ) -> DatabaseHelper:
@@ -884,6 +889,7 @@ def get_database_helper(
             schema,
             llm_id,
             llm_params,
+            model_region,
             rectification_attempt,
             schema_file,
         )
@@ -894,6 +900,7 @@ def get_database_helper(
             schema,
             llm_id,
             llm_params,
+            model_region,
             rectification_attempt,
             schema_file,
         )
@@ -904,6 +911,7 @@ def get_database_helper(
             schema,
             llm_id,
             llm_params,
+            model_region,
             rectification_attempt,
             schema_file,
         )
@@ -914,6 +922,7 @@ def get_database_helper(
             schema,
             llm_id,
             llm_params,
+            model_region,
             rectification_attempt,
             schema_file,
         )
