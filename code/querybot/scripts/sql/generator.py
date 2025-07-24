@@ -142,6 +142,7 @@ class SQLGeneratorBedrock(SQLGenerator):
             None,
             model_id,
             model_params,
+            model_region,
             rectification_attempt=3,
             schema_file=schema_file,
         )
