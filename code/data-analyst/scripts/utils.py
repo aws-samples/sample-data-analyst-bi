@@ -7,9 +7,12 @@ import logging
 import json
 from glob import glob
 import boto3
+import botocore
+from botocore.config import Config
 from scripts.query_db.config import DATA_DIR, is_lambda_environment
 
 
+s3 = boto3.client('s3')
 def get_deployment_package_path():
     """
     Function to get the path to deployment package files in Lambda
@@ -240,3 +243,15 @@ def log_error(src_module, error_msg):
     except Exception as e:
         print(f"Error logging to file: {str(e)}")
         print(f"Error Log - Time: {datetime.datetime.now()}, Module: {src_module}, Error: {error_msg}")
+
+def s3_key_exists(bucket, key):
+    print("bucket", bucket)
+    print("key", key)
+    key_exists = True
+    try:
+        s3.head_object(Bucket=bucket, Key=key)
+    except botocore.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] == "404":
+            key_exists = False
+    print(f"Key exists: {key_exists}")
+    return key_exists
