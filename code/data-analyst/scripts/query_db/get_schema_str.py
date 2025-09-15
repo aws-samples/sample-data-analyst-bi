@@ -4,9 +4,11 @@ import io
 import psycopg2
 import boto3
 import pandas as pd
+import sqlalchemy as sa
 from sqlalchemy import create_engine, inspect, select, distinct
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.sql import text
+from sqlalchemy.engine.url import URL
 from typing import Dict
 from pandas.api.types import is_numeric_dtype, is_datetime64_any_dtype, is_string_dtype
 import json
@@ -35,10 +37,19 @@ class DatabaseSchemaExtractor:
                     f"{kwargs['host']}:{kwargs.get('port', 5432)}/{kwargs['database']}"
                 )
             elif self.db_type == 'redshift':
-                self.engine = create_engine(
-                    f"redshift+redshift_connector://{kwargs['user']}:{kwargs['password']}@"
-                    f"{kwargs['host']}:{kwargs.get('port', 5439)}/{kwargs['database']}"
-                )
+                # self.engine = create_engine(
+                #     f"redshift+redshift_connector://{kwargs['user']}:{kwargs['password']}@"
+                #     f"{kwargs['host']}:{kwargs.get('port', 5439)}/{kwargs['database']}"
+                # )
+                url = URL.create(
+                            drivername='redshift+redshift_connector', # indicate redshift_connector driver and dialect will be used
+                            host=kwargs['host'], # Amazon Redshift host
+                            port=5439, # Amazon Redshift port
+                            database=kwargs['database'], # Amazon Redshift database
+                            username=kwargs['user'], # Amazon Redshift username
+                            password=kwargs['password'] # Amazon Redshift password
+                            )
+                self.engine = sa.create_engine(url)
             elif self.db_type == 's3':
                 self.s3_client = boto3.client('s3')
                 self.bucket_name = os.environ.get("S3_BUCKET_NAME")
