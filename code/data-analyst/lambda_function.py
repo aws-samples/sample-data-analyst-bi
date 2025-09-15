@@ -12,6 +12,7 @@ from scripts.query_db.prompt_config_clv3 import intent_prompt
 from scripts.time_tracker import ProcessingTimeTracker
 from scripts.cache_operations import write_to_cache, get_cached_query
 from scripts.query_db.pgsql_executor import get_sql_result
+from scripts.utils import s3_key_exists
 
 # Configure logging at root level
 def setup_logging():
@@ -436,7 +437,25 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
 
             if session == "new":
                 logger.info("New Session - initializing schema extractor")
-                schema_info, schema_str, extractor = initialize_schema_extractor(db_config, metadata)
+                #schema_info, schema_str, extractor = initialize_schema_extractor(db_config, metadata)
+                check_schema_file = s3_key_exists(os.environ.get("S3_BUCKET_NAME"), schema_str_file_key)
+                if check_schema_file:
+                    logger.info("Schema file for new session exists")
+                    response = s3.get_object(Bucket = os.environ.get("S3_BUCKET_NAME"), Key=schema_str_file_key)
+                    schema_str = response['Body'].read().decode('utf-8').strip()
+                    print("Loaded schema file for new session")
+                    extractor = DatabaseSchemaExtractor(db_config['db_type'])
+                    try:
+                        connection_params = {k: v for k, v in db_config.items() if k != 'db_type'}
+                        extractor.connect(**connection_params)
+                        logger.info("Connected successfully")
+                    except Exception as e:
+                        logger.warning("Failed to reinitialize schema, falling back to full extraction: %s", e)
+                        schema_info, schema_str, extractor = initialize_schema_extractor(db_config, metadata)
+                else:
+                    logger.info("New Session - Reinitializing schema")
+                    schema_info, schema_str, extractor = initialize_schema_extractor(db_config, metadata)
+            
             elif session == "existing":
                 logger.info("Existing Session - attempting to load schema from S3")
                 try:
@@ -444,14 +463,13 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
                     response = s3.get_object(Bucket = os.environ.get("S3_BUCKET_NAME"), Key=schema_str_file_key)
                     schema_str = response['Body'].read().decode('utf-8').strip()
                     logger.info("Successfully loaded schema from S3 (length: %d)", len(schema_str))
-                    
                     extractor = DatabaseSchemaExtractor(db_config['db_type'])
                     try:
                         connection_params = {k: v for k, v in db_config.items() if k != 'db_type'}
                         extractor.connect(**connection_params)
                         logger.info("Connected successfully")
                         # Add this line to reinitialize schema
-                        extractor.extract_schema(metadata, session, schema_info_file_key)  # Make sure metadata is available here
+                        #extractor.extract_schema(metadata, session, schema_info_file_key)  # Make sure metadata is available here
                     except Exception as e:
                         logger.warning("Failed to reinitialize schema, falling back to full extraction: %s", e)
                         schema_info, schema_str, extractor = initialize_schema_extractor(db_config, metadata)
@@ -470,15 +488,18 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
                 return api_response(500, {'error': 'Failed to extract database schema'})
             else:
                  if session == "new":
-                    s3.put_object(
-                        Bucket=os.environ.get("S3_BUCKET_NAME"),
-                        Key=schema_str_file_key,
-                        Body=schema_str)
-                    if db_config['db_type'] == 's3':
+                    check_schema_file = s3_key_exists(os.environ.get("S3_BUCKET_NAME"), schema_str_file_key)
+                    print("check_schema_file", check_schema_file)
+                    if not check_schema_file:
                         s3.put_object(
                             Bucket=os.environ.get("S3_BUCKET_NAME"),
-                            Key=schema_info_file_key,
-                            Body=json.dumps(schema_info))
+                            Key=schema_str_file_key,
+                            Body=schema_str)
+                        if db_config['db_type'] == 's3':
+                            s3.put_object(
+                                Bucket=os.environ.get("S3_BUCKET_NAME"),
+                                Key=schema_info_file_key,
+                                Body=json.dumps(schema_info))
             
         except Exception as e:
             time_tracker.save_times(iteration_id, user_query)
