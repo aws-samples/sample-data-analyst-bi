@@ -650,24 +650,16 @@ After successful deployment, consider these optimization and customization steps
 
 ##### 1.Setting Up Cache/Fewshot Examples:
 
-A. Integration of Caching and Few-Shot Learning
-
-Both the cached question-SQL pairs and few-shot examples are stored in the same table of the PostgreSQL vector database (RDS) that's created during deployment. This integration creates a synergistic system where:
-
-    * Cached question-SQL pairs approved by users serve as additional few-shot examples
-    * The growing collection of examples progressively improves the model's SQL generation capabilities
-    * The system becomes more efficient and accurate over time through normal usage
-
 The following steps detail the steps to create the cache table in the vector database and ingest the initial few-shot examples:
 
 ```bash
-a. Copy the tools folder available inside the parent directory to a Sagemaker notebook instance/EC2
-b. The Sagemaker instance/EC2 should be in the same VPC and the security group as the vector database(RDS postgres). The subnet choosen must be in a private egress subnet linked to a NAT gateway.
-c. The configurations for setting up cache and ingesting fewshot examples are in the config.py inside the tools folder -  the embedding model name, the configuration for the vector database etc. Set these values as required
-e. In a terminal, run pip install -r requirements.txt to install the required dependencies
-f. Run python create_cache.py to create the cache table in the RDS postgres vector database
-g. Ensure that the examples are added to the spreadsheet file - tools/fshot_data/examples.xlsx
-h. Run python  create_python_fshot_examples.py to ingest the examples in the cache table in the vector database
+1. Copy the tools folder available inside the parent directory to a Sagemaker notebook instance/EC2
+2. The Sagemaker instance/EC2 should be in the same VPC and the security group as the vector database(RDS postgres). The subnet choosen must be in a private egress subnet linked to a NAT gateway.
+3. The configurations for setting up cache and ingesting fewshot examples are in the config.py inside the tools folder -  the embedding model name, the configuration for the vector database etc. Set these values as required
+4. In a terminal, run pip install -r requirements.txt to install the required dependencies
+5. Run python create_cache.py to create the cache table in the RDS postgres vector database
+6. Ensure that the examples are added to the spreadsheet file - tools/fshot_data/examples.xlsx
+7. Run python  create_python_fshot_examples.py to ingest the examples in the cache table in the vector database
 ```
 
 ##### 2.Prompt configurations
