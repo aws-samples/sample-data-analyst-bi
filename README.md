@@ -21,6 +21,13 @@ https://github.com/user-attachments/assets/827ac4c9-9680-421a-88a7-c5dbe3cf55b8
 
 Some of the unique features are highlighted by the ✅ icon.
 
+## 🛠️ Core Services Required
+- **Infrastructure**: CloudFormation, IAM, VPC/EC2, S3
+- **Compute**: Lambda, ECS, Application Load Balancer
+- **Database**: RDS, DynamoDB, Athena, Glue
+- **AI/API**: Bedrock, API Gateway, Step Functions
+- **Monitoring**: CloudWatch Logs, Systems Manager, EventBridge
+
 ## 🏗️ Architecture
 
 ![Data Analyst Platform Architecture](architecture.png)
@@ -72,17 +79,53 @@ Key configuration files:
 - **Existing VPC**: Must have properly configured subnets detailed in Scenario 2 below (if want to create from scratch use Scenario 1)
 - **Metadata S3 Bucket**: Must pre-exist (if using S3-Athena, CSVs have to be placed here)
 
-## Deployment Scenarios
+#### Metadata & Fewshot data
 
-<details>
+- To ensure optimal SQL generation quality, comprehensive schema metadata must be included in the prompt -  table descriptions and column descriptions in the format specified [metadata sample](data_templates/metadata/)
+- There are two distinct invocation patterns for SQL generation: zeroshot and fewshot. While zeroshot approach serves as a baseline approach,  the fewshot approach significantly improves SQL accuracy by augmenting prompts with contextually relevant examples. The implementation utilizes a Postgres-based vector database that performs semantic similarity search to identify and retrieve the most relevant examples for each user query at inference time. The application supports two ways of creating these examples:
 
-<summary>
-<b>Scenario 1: Have Poweruser Role To Deploy AWS Infra </b> </summary>
+    * Standard NL-SQL Pairs:  
+        * Structure: Natural language question paired with its corresponding SQL query
+        * Learning mechanism: The foundation model infers semantic mapping between natural language intent and SQL syntax
+        * Reference: Example template documentation available in the specified format available [fewshot without explanation](data_templates/fewshot/student_club_fshot_wo_expl_template.xlsx)
+
+    * NL-SQL Pairs augmented with chain of thought and NL variation
+        * Structure: Natural language question, corresponding SQL query, chain-of-thought reasoning steps, and question variation
+        * Learning mechanism: The foundation model leverages explicit reasoning paths and linguistic variations to strengthen the association between user intent and SQL generation
+        * Reference: Enhanced example template documentation available in the specified format available [fewshot with explanation](data_templates/fewshot/student_club_fshot_w_expl_template.xlsx)
+
+#### Data setup for operational database
+
+- Prior to deploying the application it is imperative to  establish a fully configured database environment with the required business and transactional data in place. The application supports RDS-Postgres, S3-Athena, and Redshift databases. If you already have your data in the database, you can go to the next section. However, if you have data in sqlite format, and want to export to RDS - Postgres  or Athena, follow the steps - 
+
+- Migrating sqlite db to RDS Postgres:Users can migrate the data from sqlite to RDS Postgres using the utitlies available inside the tools/ directory
+```bash
+ * Ensure that the RDS database connection parameters are correctly set in the tools/config.py inside the tools folder
+ * The sub-folder - sqlite_dbs must be there inside the tools folder and the database having extension - .sqlite must be available inside the sqlite_dbs sub-folder
+ * Ensure that the path to the sqlitedb is set in the sqlite_dir parameter in tools/config.py
+ * Open a terminal in sagemaker and type 
+    (1) pip install -r requirements.txt 
+    (2) python migrate_data_sqlite_postgres.py and select "all" when prompted
+ * The sqlite tables will be migrated to RDS postgres
+```
+
+- Migrating sqlite db to S3-Athena: Users can convert the data from sqlite to csv format using the utitlies available inside the tools/ directory
+```bash
+ * Set the "database_path" and "output_directory" inside the main function available inside tools/convert_sqlite_to_S3DB.py
+ * Open a terminal in sagemaker and type 
+    (1) python convert_sqlite_to_S3DB.py
+ * The above step will generate csvs in the output directory
+ * The above csv files are to be stored inside the s3 bukcet created by the deployment step(detailed in the post deployment configuration)
+```
 
 
-In this scenario you have AWS admin or poweruser role to allow the CDK to create and deploy VPCs, SubNets etc. Hence, you can just leave the empty strings empty in the cdk.json file and all those will be created during deployment. But do not forget to set your data / DB related permissions in the `cdk.json` (described later). If you forget to do it in the `cdk.json` there is a way to fix it also which will require you to go into the lambda code (described later).
+### Deployment
 
-#### Step 1: Download Code and Setup Local Environment
+#### Pre-Deployment Steps
+
+Data Analyst BI offers extensive configuration options to adapt to your specific requirements. Here are the steps to be performed prior to deployment. 
+
+1. Download Code and Setup Local Environment
 
 ```bash
 git clone <repository-url>  # Clone repository
@@ -94,44 +137,137 @@ cd cdk && pip install -r requirements.txt && cd ..
 # configure aws profile: this will enable you to talk to your aws services using the profile data-analyst
 aws configure --profile data-analyst
 ```
-#### Step 2: Set DB Configurations
 
-**REQUIRED Database Configuration:**
+Once the repository is cloned, the required configurations can be setup in the cdk.json
 
-These configurations can be set in the `cdk/cdk.json` file before deploying.
-- `db_name`: Fewshot DB name. Can be any name you decide as a new RDS instance will be created (REQUIRED) 
-- `db_username`: Fewshot DB user name. Can be any name you decide as a new RDS instance will be created(REQUIRED)
-- `db_password`: Fewshot DB password. Can be any password you decide as a new RDS instance will be created (REQUIRED)
-- `api_db_host`: Existing Redshift / RDS database host URL. Leave empty for S3 / Athena (REQUIRED)
-- `api_db_port`: Existing Redshift (5439) / RDS (5432) database port. No port for S3 / Athena (REQUIRED)
-- `api_db_name`: Existing Redshift / RDS database name. Provide S3 bucket name for S3 / Athena (REQUIRED)
-- `api_db_user`: Existing Redshift / RDS database user name. Empty for S3 / Athena (REQUIRED)
-- `api_db_password`: Existing Redshift / RDS database password. Empty for S3 / Athena (REQUIRED)
-- `api_db_type`: Database type - `postgresql` (for RDS), `redshift`, or `s3` (REQUIRED)
+2. Model Selection and Parameters
 
-**OPTIONAL Metadata and Model Configurations:**
+Choose from various AWS Bedrock models and region to optimize for accuracy or cost:
+cdk.json:
 
-These configurations can be set in the `cdk/cdk.json` file before deploying.
-- `model_region`: AWS region for accessing the models
-- `sql_model_id`: Bedrock model for SQL generation
-- `chat_model_id`: Bedrock model for chat responses  
-- `embedding_model_id`: Bedrock model for vector embeddings
-- `approach`: Examples selection method (`few_shot` or `zero_shot`)
-- `metadata_s3_bucket`: S3 bucket for metadata (must pre-exist)
-- `metadata_is_meta`: Enable metadata-driven schema discovery
-- `metadata_table_meta`: S3 key for table metadata Excel file
-- `metadata_column_meta`: S3 key for column metadata Excel file
+```json
+{
+ "sql_model_id": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+ "embedding_model_id": "cohere.embed-english-v3",
+ "chat_model_id": "us.anthropic.claude-3-5-haiku-20241022-v1:0",
+}
+ ```
 
-**OPTIONAL Model Configurations:**
+Other Model Configurations:
 
 These configurations can be set in the `streamlit/UI/config.py` file before deployment.
 
-- `plot_model_id`: Bedrock model for generating visualisation code
-- `expl_model_id`: Bedrock model for explaining results from data
+- `plot_model_id`: Foundation model from Bedrock for generating visualisation code
+- `expl_model_id`: Foundation model from Bedrock for explaining results from data
+
+3. Model region
+
+- `model_region`: AWS region for accessing the models
+
+4. Prompting Strategy
+
+```json
+{
+ "approach": "few_shot"  ## few_shot, # zero_shot
+}
+ ```
+
+5. Database Integration
+
+> [!NOTE]
+> The platform supports three database types. Choose the one that matches your data infrastructure.
+
+##### PostgreSQL
+```json
+{
+  "api_db_host": "your-postgres-instance.region.rds.amazonaws.com",
+  "api_db_port": 5432,
+  "api_db_name": "your_database",
+  "api_db_user": "your_user",
+  "api_db_password": "your_password",
+  "api_db_type": "postgresql"
+}
+```
+
+##### Redshift
+```json
+{
+  "api_db_host": "your-redshift-cluster.region.redshift.amazonaws.com",
+  "api_db_port": 5439,
+  "api_db_name": "your_database",
+  "api_db_user": "your_user",
+  "api_db_password": "your_password",
+  "api_db_type": "redshift"
+}
+```
+
+##### S3-Athena
+```json
+{
+  "api_db_host": "",
+  "api_db_port": 0,
+  "api_db_name": "your_s3_data_lake_name",
+  "api_db_user": "",
+  "api_db_password": "",
+  "api_db_type": "s3"
+}
+```
+
+6. Metadata Enhancement
+
+- Improve query accuracy with rich metadata
+```json
+{
+"metadata_s3_bucket": "Bucket where metadata to be stored",
+"metadata_is_meta": true,
+"metadata_table_meta": "schema/your_tables.xlsx",
+"metadata_column_meta": "schema/your_columns.xlsx",
+"metadata_metric_meta": "schema/student_club_metrics.xlsx"
+}
+```
+> [!TIP]
+> For S3-Athena, the metadata S3 bucket must pre-exist before deployment.
 
 
+7. Infrastructure Configuration
 
-#### Step 3: Deploy all stacks (this will take 15-30 minutes)
+Depending on your deployment scenario, you may need to provide:
+
+- `vpc_id`: existing vpc id, proper DNS resolution enabled
+- `private_egress_subnet_1`: First private egress subnet with internet connectivity through NAT(Required for Fargate, lambda functions). With NAT Gateway access (for Lambda/ECS). Subnet must span multiple AZs.
+- `private_egress_subnet_1`: Second private egress subnet with internet connectivity (Required for Fargate, lambda functions). With NAT Gateway access (for Lambda/ECS). Subnet must span multiple AZs.
+- `private_isolated_subnet_1`: First private isolated subnet with no internet connectivity(Required for load balancer and databases). Subnet must span multiple AZs.
+- `private_isolated_subnet_2`: Second private isolated subnet with no internet connectivity(Required for load balancer and databases). Subnet must span multiple AZs.
+- `security_group`: Security group can be created with the appropriate inbound/outbound rules as given below or leave as "" if you want the deployment process to create the security group
+
+    **Inbound Rules:**
+    * `HTTP (80)` ← VPC CIDR: ALB to ECS communication
+    * `HTTPS (443)` ← VPC CIDR: Secure web traffic
+    * `PostgreSQL (5432)` ← VPC CIDR: Database access
+    * `SSH (22)` ← VPC CIDR: Bastion host access
+    * `Custom TCP (8501)` ← VPC CIDR: Streamlit application
+    * `All Traffic` ← Self-reference: Inter-service communication
+
+    **Outbound Rules:**
+    * `HTTPS (443)` → 0.0.0.0/0: AWS API calls and Bedrock
+    * `HTTP (80)` → 0.0.0.0/0: Package downloads
+    * `PostgreSQL (5432)` → VPC CIDR: Database connections
+    * `DNS (53 UDP/TCP)` → 0.0.0.0/0: Name resolution
+    * `All Traffic` → Self-reference: Inter-service communication
+
+You can leave the above fields(vpc, subnets, security) blank in the cdk.json if you want the deployment to create the infrastructure
+
+#### Deployment Steps
+
+<details>
+
+<summary>
+<b>Scenario 1: Have Poweruser Role To Deploy AWS Infra </b> </summary>
+
+
+In this scenario you have AWS admin or poweruser role to allow the CDK to create and deploy VPCs, SubNets etc. Hence, you can just leave the empty strings empty in the cdk.json file and all those will be created during deployment. But do not forget to set your data / DB related permissions in the `cdk.json` (described later). If you forget to do it in the `cdk.json` there is a way to fix it also which will require you to go into the lambda code (described later).
+
+#### Step 1: Deploy all stacks (this will take 15-30 minutes)
 
 Make sure that the docker daemon is running in the background locally. Verify using `docker --version`.
 
@@ -151,7 +287,7 @@ aws sts get-caller-identity
 
 ```
 
-#### Step 4: Connect with Deployed Application
+#### Step 2: Connect with Deployed Application
 
 ```bash
 
@@ -165,7 +301,7 @@ aws sts get-caller-identity
 # 4. Display access instructions
 ```
 
-#### Step 5: Access Web Interface
+#### Step 3: Access Web Interface
 
 ```bash
 # Open your browser to:
@@ -185,38 +321,8 @@ Or else the Admin can deploy the solution for you using Scenario 1 and give you 
 
 Whoever is deploying do not forget to set your data / DB related permissions in the `cdk.json` (described later). If you forget to do it in the `cdk.json` there is a way to fix it also which will require you to go into the lambda code (described later).
 
-**Core Services Required:**
-- **Infrastructure**: CloudFormation, IAM, VPC/EC2, S3
-- **Compute**: Lambda, ECS, Application Load Balancer
-- **Database**: RDS, DynamoDB, Athena, Glue
-- **AI/API**: Bedrock, API Gateway, Step Functions
-- **Monitoring**: CloudWatch Logs, Systems Manager, EventBridge
 
-#### Step 1: Verify Infrastructure Prerequisites
-
-**Required Infrastructure:**
-- **VPC**: Existing VPC with proper DNS resolution enabled
-- **2 Private Egress Subnets**: With NAT Gateway access (for Lambda/ECS)
-- **2 Private Isolated Subnets**: Without internet access (for RDS)
-- **1 Security Group**: With required rules (see below)
-- **Different Availability Zones**: All subnets must span multiple AZs
-
-#### Security Group Configuration
-
-**Inbound Rules:**
-- `HTTP (80)` ← VPC CIDR: ALB to ECS communication
-- `HTTPS (443)` ← VPC CIDR: Secure web traffic
-- `PostgreSQL (5432)` ← VPC CIDR: Database access
-- `SSH (22)` ← VPC CIDR: Bastion host access
-- `Custom TCP (8501)` ← VPC CIDR: Streamlit application
-- `All Traffic` ← Self-reference: Inter-service communication
-
-**Outbound Rules:**
-- `HTTPS (443)` → 0.0.0.0/0: AWS API calls and Bedrock
-- `HTTP (80)` → 0.0.0.0/0: Package downloads
-- `PostgreSQL (5432)` → VPC CIDR: Database connections
-- `DNS (53 UDP/TCP)` → 0.0.0.0/0: Name resolution
-- `All Traffic` → Self-reference: Inter-service communication
+#### Step 1: Verify that all the infrastructure Prerequisites as given in the Infrastructure Configuration
 
 #### Step 2: Configure AWS CLI & Permissions
 
@@ -436,69 +542,6 @@ aws bedrock list-foundation-models --region us-east-1
 ```
 Once you have set up the AWS infrastructure lets deploy the application
 
-#### Step 3: Clone Repo and set up Local environment
-
-```bash
-git clone <repository-url>
-cd sample-data-analyst-bi
-
-# Install CDK dependencies
-cd cdk && pip install -r requirements.txt && cd ..
-```
-
-#### Step 4: Setup Configuration in cdk.json
-
-> [!IMPORTANT]
-> - All REQUIRED fields must be provided
-> - VPC and subnets must already exist
-> - Metadata S3 bucket must pre-exist for S3 database types
-> - Database credentials must be valid and accessible
-> - Bedrock models must be enabled in your region
-
-
-Edit values in `cdk/cdk.json`. Here is a reference to the different configurationvalues in cdk.json
-
-**REQUIRED Core Infrastructure:**
-- `project_name`: Base name for all AWS resources
-- `vpc_id`: Existing VPC ID (REQUIRED)
-- `private_egress_subnet_1/2`: Private subnets with NAT Gateway (REQUIRED)
-- `private_isolated_subnet_1/2`: Private isolated subnets for RDS (REQUIRED)
-- `security_group_id`: Security group with proper rules (REQUIRED)
-
-**REQUIRED Database Configuration:**
-
-These configurations can be set in the `cdk/cdk.json` file before deploying.
-- `db_name`: Fewshot DB name. Can be any name you decide (REQUIRED) 
-- `db_username`: Fewshot DB user name. Can be any name you decide (REQUIRED)
-- `db_password`: Fewshot DB password. Can be any name you decide (REQUIRED)
-- `api_db_host`: Redshift / RDS database host URL. Leave empty for S3 / Athena (REQUIRED)
-- `api_db_port`: Redshift (5439) / RDS (5432) database port. No port for S3 / Athena (REQUIRED)
-- `api_db_name`: Redshift / RDS database name. Provide S3 bucket name for S3 / Athena (REQUIRED)
-- `api_db_user`: Redshift / RDS database user name. Empty for S3 / Athena (REQUIRED)
-- `api_db_password`: Redshift / RDS database password. Empty for S3 / Athena (REQUIRED)
-- `api_db_type`: Database type - `postgresql` (for RDS), `redshift`, or `s3` (REQUIRED)
-
-**OPTIONAL Metadata and Model Configurations:**
-
-These configurations can be set in the `cdk/cdk.json` file before deploying.
-- `model_region`: AWS region for accessing the models
-- `sql_model_id`: Bedrock model for SQL generation
-- `chat_model_id`: Bedrock model for chat responses  
-- `embedding_model_id`: Bedrock model for vector embeddings
-- `approach`: Examples selection method (`few_shot` or `zero_shot`)
-- `metadata_s3_bucket`: S3 bucket for metadata (must pre-exist)
-- `metadata_is_meta`: Enable metadata-driven schema discovery
-- `metadata_table_meta`: S3 key for table metadata Excel file
-- `metadata_column_meta`: S3 key for column metadata Excel file
-
-**OPTIONAL Model Configurations:**
-
-These configurations can be set in the `streamlit/UI/config.py` file before deployment.
-
-- `plot_model_id`: Bedrock model for generating visualisation code
-- `expl_model_id`: Bedrock model for explaining results from data
-
-
 #### Validate Configuration
 ```bash
 # Verify VPC exists
@@ -508,7 +551,7 @@ aws ec2 describe-vpcs --vpc-ids $(grep vpc_id cdk/cdk.json | cut -d'"' -f4)
 aws bedrock list-foundation-models --region us-east-1 | grep -E "(claude-3|cohere)"
 ```
 
-#### Step 5: Deploy
+#### Step 3: Deploy
 
 > [!NOTE]
 > Deployment typically takes 15-30 minutes. Monitor progress in the AWS CloudFormation console.
@@ -599,13 +642,211 @@ expl_model_id = parsed_input.get("expl_model_id")
 
 Make sure to deploy the lambda function.
 
-
-
 </details>
 
-## Experimentation Guide
+#### Post-Deployment configuration
 
-[Testing](Testing.md) - Guide on what parameters, techniques to leverage for better performance and troubleshooting issues
+After successful deployment, consider these optimization and customization steps to improve the quality of generated SQL
+
+##### 1. Setting Up Cache/Fewshot Examples:
+
+A. Integration of Caching and Few-Shot Learning
+
+Both the cached question-SQL pairs and few-shot examples are stored in the same table of the PostgreSQL vector database (RDS) that's created during deployment. This integration creates a synergistic system where:
+
+    * Cached question-SQL pairs approved by users serve as additional few-shot examples
+    * The growing collection of examples progressively improves the model's SQL generation capabilities
+    * The system becomes more efficient and accurate over time through normal usage
+
+The following steps detail the steps to create the cache table in the vector database and ingest the initial few-shot examples:
+
+```bash
+a. Copy the tools folder available inside the parent directory to a Sagemaker notebook instance/EC2
+b. The Sagemaker instance/EC2 should be in the same VPC and the security group as the vector database(RDS postgres). The subnet choosen must be in a private egress subnet linked to a NAT gateway.
+c. The configurations for setting up cache and ingesting fewshot examples are in the config.py inside the tools folder -  the embedding model name, the configuration for the vector database etc. Set these values as required
+e. In a terminal, run pip install -r requirements.txt to install the required dependencies
+f. Run python create_cache.py to create the cache table in the RDS postgres vector database
+g. Ensure that the examples are added to the spreadsheet file - tools/fshot_data/examples.xlsx
+h. Run python  create_python_fshot_examples.py to ingest the examples in the cache table in the vector database
+```
+
+##### Prompt configurations
+
+The query bot lambda is responsible for invoking foundation models to generate SQL. The various prompts which can be be used to  do so are available inside querybot → scripts → prompts.py. These can be customized based on the business requirements.
+
+- **System prompt for SQl generation** :
+
+```bash
+You are an expert SQL query generator.
+Given an input question and a database schema within the <schema></schema> tag, create a precise, syntactically correct and efficient SQL query.
+please follow the instructions while generating the sql:
+1.Please generate SQL compatible with {sql_database} database.
+2.Ensure that the generated SQL select statement includes all relevant factors including identifier or filter columns mentioned in the input question.
+3.Always include identifier columns in the SELECT clause when they are used in WHERE conditions.
+```
+
+- **Zeroshot prompt for SQl generation** -
+```bash
+BEDROCK_ZS_SQL_PROMPT -> 
+The database schema below contains the following fields:
+- Table name
+- Column names
+- Column data types
+- Key information
+
+Given the database schema within the <schema></schema> tags 
+
+<schema>
+{schema}
+</schema>
+
+generate a SQL statement for the question within the <question></question> tags:
+
+<question>
+{question}
+</question>
+
+Put your answer in <sql></sql> tag.
+```
+
+- **Fewshot prompt for SQl generation** -
+```bash
+BEDROCK_FS_SQL_PROMPT:
+For each table, you are provided with some or all of the following
+    - Table name
+    - Column names
+    - Column data types
+    - Key information
+
+Given the database schema within the <schema></schema> tags 
+
+<schema>
+{schema}
+</schema>
+
+and the following example pairs of question , sql queries, explanation of the SQL query and a similar question created from the SQL given within the <example></examples> tags
+
+<examples>
+{examples}
+</examples>
+
+generate a SQL statement for the question within the <question></question> tags
+
+<question>
+{question}
+</question>
+```
+
+The data analyst lambda is responsible for invoking foundation models to generate python query required for chart generation. The prompts which can be be used to  do so are available inside data-analyst/scripts/query_db/prompt_config_clv3.py. This can be customized based on the business requirements.
+
+- **Fewshot prompt for python code generation** -
+
+```bash
+You are an expert python coder. You are good at writing python code to create different types of plots. Follow the instructions in the <instructions> tag to create python code for generating the plot asked by the user. A sample of actual data on which the plot is to be generated is given in the <actual_data_sample> tag.
+Donot apply filters to the data, the data is already filtered.
+
+Given below is the path to the data you should load
+<data_path>
+{file_path}
+</data_path>
+
+Given below is the sample of the actual data which contains all the required columns to create the plot
+<actual_data_sample>
+{sample}
+</actual_data_sample>
+
+Some examples are given in the <example> tag on how to interpret the data and create plots.
+<examples>
+{ex}
+</examples>
+
+Some rules to be followed while plotting are given below:
+<plotting_rules>
+1.In the x axis, the x tick values should be rotated by 90 degrees
+2.while plotting grouped barcharts, the barwidth should be added to the numeric number
+</plotting_rules>
+
+<instructions>
+(1).Your job is to create plots on the data given in the <actual_data_sample> tag corresponding to the question passed by the user.
+(2).Think step by step - follow the instructions given below to generate charts
+(3).Create a python function - load the data from the path given inside <data_path> tag.
+(4).Import all the required libraries inside the python function
+(5).Refer to the examples in the the <examples>tag if available for guidance
+(6).Follow the plotting rules given in the <plotting_rules> tag
+(7).The python function that you create should return the figure
+(8).The plots should be in the same figure plot and use different color codes to represent different entities
+(9).After the function definition, assign the relevant data filenames to appropriate variables
+(10).Call the python function after the end of the function definition with the filename variables 
+(11).Collect the returned value from the function call in a variable named "plot_out". Donot deviate from this
+(12).If the data is not available, then donot plot and return empty figure
+(13).Return your the python function definition and function call inside the <answer> tag and your step by step reasoning to construct python defintion in the <explanation> tag
+</instructions>
+
+IMPORTANT - 
+(1). You should import all the required libraries such as matplotlib, pandas inside the python function definition
+(2). Before creating the python function, check what columns are available for the data in <actual_data_sample> tag. You should not filter the data for any values inside the function definition
+(3). Only use columns available in <actual_data_sample> tag to perform any data transformations needed inside the pythom function definition. You should not refer to any columns not available in the data inside <actual_data_sample> tag
+(4). Just reminding you that your job is to create a python function to generate plot. No filters are required on the data
+```
+
+##### Foundation model hyperparameters
+
+The foundation model’s hyperparameters can also influence the accuracy of SQL. Hyperparameter configuration can be set in the following path -  querybot/scripts/config.py
+
+A sample configuration is shown below:
+
+```bash
+LLM_CONF:"us.anthropic.claude-3-7-sonnet-20250219-v1:0": {
+"temperature": 0,
+"top_p": 1,
+"top_k": 250,
+"max_tokens": 200,
+"anthropic_version": "bedrock-2023-05-31",
+"stop_sequences": ["</sql>"],
+"performanceConfig": "standard"
+},
+"us.anthropic.claude-3-5-haiku-20241022-v1:0": {
+"temperature": 0,
+"top_p": 1,
+"top_k": 250,
+"max_tokens": 200,
+"anthropic_version": "bedrock-2023-05-31",
+"stop_sequences": ["</sql>"],
+"performanceConfig": "optimized"
+}
+```
+
+##### Fewshot example selection threshold score
+
+Few-shot examples are maintained in a cache table within our RDS PostgreSQL vector database. When processing user queries, the system dynamically retrieves semantically similar examples to enhance SQL generation accuracy.
+
+Users can customize the semantic similarity threshold through the following:
+
+    * File Path: querybot/scripts/config.py
+    * Variable: AOSS_RELEVANCE_THRESHOLD
+    * Valid Range: 0.0 to 1.0
+
+A higher threshold value will retrieve only highly similar examples, while a lower threshold will include more diverse examples with less strict matching criteria.
+
+##### S3-Athena folder directory 
+
+The CSV files for S3-Athena databse are to be stored inside the S3 bucket created by the deployment. The content inside the S3 bucket should be structured as follows:
+
+```
+bucket-created-by-deployment>
+|__ <DB name>
+   |___ data
+   |     |___ <folder with same name as table_name 1>
+   |     |    |___ table_name 1.csv
+   |     |___ <folder with same name as table_name 2>
+   |     |    |___ table_name 2.csv
+   |___ metadata
+        |___ <tables description xlsx file>
+        |___ <columns description xlsx file>
+        |___ <metrics description xlsx file>
+```
+
+
 
 ## 🚨 Troubleshooting Deployment Issues
 
@@ -687,73 +928,6 @@ docker run hello-world
 ```
 
 </details>
-
-
-## 📊 Supported Database Types
-
-> [!NOTE]
-> The platform supports three database types. Choose the one that matches your data infrastructure.
-
-### PostgreSQL
-```json
-{
-  "api_db_host": "your-postgres-instance.region.rds.amazonaws.com",
-  "api_db_port": 5432,
-  "api_db_name": "your_database",
-  "api_db_user": "your_user",
-  "api_db_password": "your_password",
-  "api_db_type": "postgresql"
-}
-```
-
-### Redshift
-```json
-{
-  "api_db_host": "your-redshift-cluster.region.redshift.amazonaws.com",
-  "api_db_port": 5439,
-  "api_db_name": "your_database",
-  "api_db_user": "your_user",
-  "api_db_password": "your_password",
-  "api_db_type": "redshift"
-}
-```
-
-### S3-Athena
-```json
-{
-  "api_db_host": "",
-  "api_db_port": 0,
-  "api_db_name": "your_s3_data_lake_name",
-  "api_db_user": "",
-  "api_db_password": "",
-  "api_db_type": "s3"
-}
-```
-
-> [!TIP]
-> For S3-Athena, the metadata S3 bucket must pre-exist before deployment.
-
-## 🎯 Tools
-
-The deployment comes with a few tools that can help you prepare your data for doing further experimentation:
-
-1. Find tools for preparing a RDS database from sqlite DB in `tools` folder
-2. Find tools for preparing a S3/Athena compliant data store in the `tools` folder
-2. Find some tools for automatically generating metadata for tables and columns in the `code/tools` folder. The tool requires you to store your tables in a ZIP file with the following structure
-
-**Example ZIP Structure:**
-```
-your_database.zip
-├── customers/
-│   └── customers.csv
-├── orders/
-│   └── orders.csv
-├── products/
-│   └── products.csv
-└── sales/
-    ├── sales_2023.csv
-    └── sales_2024.csv
-```
 
 <details>
 <summary>
