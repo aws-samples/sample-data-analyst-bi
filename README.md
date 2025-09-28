@@ -125,7 +125,7 @@ Key configuration files:
 
 Data Analyst BI offers extensive configuration options to adapt to your specific requirements. Here are the steps to be performed prior to deployment. 
 
-- **1.Download Code and Setup Local Environment**
+##### 1.Download Code and Setup Local Environment
 
 ```bash
 git clone <repository-url>  # Clone repository
@@ -140,7 +140,7 @@ aws configure --profile data-analyst
 
 Once the repository is cloned, the required configurations can be setup in the cdk.json
 
-- **2.Model Selection and Parameters**
+##### 2.Model Selection and Parameters
 
 Choose from various AWS Bedrock models and region to optimize for accuracy or cost:
 cdk.json:
@@ -160,11 +160,11 @@ These configurations can be set in the `streamlit/UI/config.py` file before depl
 - `plot_model_id`: Foundation model from Bedrock for generating visualisation code
 - `expl_model_id`: Foundation model from Bedrock for explaining results from data
 
-- **3.Model region**
+##### 3.Model region
 
 - `model_region`: AWS region for accessing the models
 
-- **4.Prompting Strategy**
+##### 4.Prompting Strategy
 
 ```json
 {
@@ -172,7 +172,7 @@ These configurations can be set in the `streamlit/UI/config.py` file before depl
 }
  ```
 
-- **5.Database Integration**
+##### 5.Database Integration
 
 > [!NOTE]
 > The platform supports three database types. Choose the one that matches your data infrastructure.
@@ -213,7 +213,7 @@ These configurations can be set in the `streamlit/UI/config.py` file before depl
 }
 ```
 
-- **6.Metadata Enhancement**
+##### 6.Metadata Enhancement
 
 - Improve query accuracy with rich metadata
 ```json
@@ -229,7 +229,7 @@ These configurations can be set in the `streamlit/UI/config.py` file before depl
 > For S3-Athena, the metadata S3 bucket must pre-exist before deployment.
 
 
-- **7.Infrastructure Configuration**
+##### 7.Infrastructure Configuration
 
 Depending on your deployment scenario, you may need to provide:
 
@@ -648,7 +648,7 @@ Make sure to deploy the lambda function.
 
 After successful deployment, consider these optimization and customization steps to improve the quality of generated SQL
 
-##### 1. Setting Up Cache/Fewshot Examples:
+##### 1.Setting Up Cache/Fewshot Examples:
 
 A. Integration of Caching and Few-Shot Learning
 
@@ -670,7 +670,7 @@ g. Ensure that the examples are added to the spreadsheet file - tools/fshot_data
 h. Run python  create_python_fshot_examples.py to ingest the examples in the cache table in the vector database
 ```
 
-##### Prompt configurations
+##### 2.Prompt configurations
 
 The query bot lambda is responsible for invoking foundation models to generate SQL. The various prompts which can be be used to  do so are available inside querybot → scripts → prompts.py. These can be customized based on the business requirements.
 
@@ -789,7 +789,7 @@ IMPORTANT -
 (4). Just reminding you that your job is to create a python function to generate plot. No filters are required on the data
 ```
 
-##### Foundation model hyperparameters
+##### 3. Foundation model hyperparameters
 
 The foundation model’s hyperparameters can also influence the accuracy of SQL. Hyperparameter configuration can be set in the following path -  querybot/scripts/config.py
 
@@ -816,7 +816,7 @@ LLM_CONF:"us.anthropic.claude-3-7-sonnet-20250219-v1:0": {
 }
 ```
 
-##### Fewshot example selection threshold score
+##### 4.Fewshot example selection threshold score
 
 Few-shot examples are maintained in a cache table within our RDS PostgreSQL vector database. When processing user queries, the system dynamically retrieves semantically similar examples to enhance SQL generation accuracy.
 
@@ -828,7 +828,7 @@ Users can customize the semantic similarity threshold through the following:
 
 A higher threshold value will retrieve only highly similar examples, while a lower threshold will include more diverse examples with less strict matching criteria.
 
-##### S3-Athena folder directory 
+##### 5.S3-Athena folder directory 
 
 The CSV files for S3-Athena databse are to be stored inside the S3 bucket created by the deployment. The content inside the S3 bucket should be structured as follows:
 
