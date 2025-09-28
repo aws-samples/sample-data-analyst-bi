@@ -1165,6 +1165,44 @@ aws rds describe-db-instances --db-instance-identifier data-analyst-postgres-db 
 aws secretsmanager get-secret-value --secret-id data-analyst-db-credentials --profile profile_name
 ```
 
+## Quick solutions for typical testing roadblocks
+
+| Issue | Resolution |
+|-------|------------|
+| **Timeout Error** | Goto the logs in the application bucket and check the total response time. If it is more than 29 secs, then the issue is with the API Gateway timeout. The default quota for API Gateway is set to 29 secs. A service ticket can be raised in the AWS console to increase it to 2 mins. Go to service quotas--> API Gateway. Maximum integration timeout in milliseconds" and set the "Increase quota value" to 2 mins .This is auto-approved. Wait for an half an hour and then go to the API Gateway service from the console. Go to your API --> Resources --> POST--> Integration Request. Click on Edit and change the "Integration timeout" to the one that you applied in your quota request. Once done, click on Deploy API and select the stage. |
+| **Failed to generate SQL** | (1). Check if all the LLMs used in the asset are activated in Bedrock. (2).Check if the lambda function is able to connect to the vector database and the api database. This can be validated in the cloudwatch logs, (3). Check if the model is available in the specified region, (4). the model should be defined in the configuration of data-analyst lambda function(path - data-analyst/scripts/query_db/config.py) and query bot lambda function (path - query_bot/scripts/config.py). Additionally, the model should be defined in the prompts file(path - query_bot/scripts/prompts.py, the relevant parameters are - LLM_ZS_PROMPTS, LLM_FS_PROMPTS, LLM_PROMPTS_FINAL, LLM_IP_PROMPTS, LLM_IP_PROMPTS_FINAL, LLM_RECTIFIER_PROMPTS, LLM_RECTIFIER_PROMPTS_FINAL) |
+| **AccessDeniedException when calling the InvokeModel operation** |Resolution is same as in the previous issue |
+| **Fewshot examples not getting added to prompt** | You will not see an error, however if you use one embedding model for populating the vector database and another embedding model to generate the embeddings for incoming question, then no data will be retrieved from the vector database and added to the prompt. This can be validated in the cloudwatch logs of the querybot lambda |
+**An error occurred (ThrottlingException) when calling the Converse operation**  | Check the quota limit(Tokens per mins  & Requests per min) of bedrock LLM in your account and raise a service ticket to increase those quotas
+  **Other Issues**  | Check the cloudwatch logs of both the lambda functions or check the logs stored in the S3 bucket created by the cdk deployment
+
+## Monitoring
+
+The solution persists the log of time taken for each step and the error logs in the S3 bucket created through the CDK deployemnt 
+
+### Latency components
+
+The time taken in each step is tored inside the processing_times folder in the application bucket created by the cdk deployment
+
+- **validating Input**: Time taken to validate the input
+- **get_cache_entries**: Time taken to check the entires in cache
+- **extract Schema**: Time taken to extract the schema from database
+- **question_intent**: Time taken to identify whether the question is a SQL based or python or a greeting question
+- **sql_generation**: Time taken to generate the SQL
+- **sql_execution**: Time taken to execute the SQL
+- **sql_re-execution**: Time taken to regenerate the SQL(if it has wrong syntx) and re-execute
+- **Normalization**: Time taken to normalize filter values in the SQL
+- **Explanation generation**: Time taken to convert the results from the database to natural language response
+
+- **Total processing time**: The total processing time
+
+### Error logs
+
+1. The error logs are stored in the log_files folder inside the application bucket
+
+2. The logs can also be tracked in the cloudwatch logs of the two lambda functions that are deployed through the cdk deployment
+
+
 ## 💡 Usage Tips
 
 - **First Time**: Allow ~5 minutes for ECS service to fully start
