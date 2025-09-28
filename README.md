@@ -21,6 +21,16 @@ https://github.com/user-attachments/assets/827ac4c9-9680-421a-88a7-c5dbe3cf55b8
 
 Some of the unique features are highlighted by the ✅ icon.
 
+## 🔒 Security Features
+
+- **No Public Access**: All resources in private subnets
+- **Bastion Host**: SSM Session Manager access only (no SSH keys required)
+- **EC2 Instance Connect**: Temporary SSH key injection for tunneling
+- **VPC Endpoints**: Private connectivity to AWS services
+- **API Keys**: Secured API Gateway access
+- **IAM Roles**: Least privilege access
+- **Security Groups**: Restrictive network access controls
+
 ## 🛠️ Core Services Required
 - **Infrastructure**: CloudFormation, IAM, VPC/EC2, S3
 - **Compute**: Lambda, ECS, Application Load Balancer
@@ -1112,16 +1122,6 @@ DataAnalyst/
 └── view_logs.sh                # Log viewing utility
 ```
 </details>
-
-## 🔒 Security Features
-
-- **No Public Access**: All resources in private subnets
-- **Bastion Host**: SSM Session Manager access only (no SSH keys required)
-- **EC2 Instance Connect**: Temporary SSH key injection for tunneling
-- **VPC Endpoints**: Private connectivity to AWS services
-- **API Keys**: Secured API Gateway access
-- **IAM Roles**: Least privilege access
-- **Security Groups**: Restrictive network access controls
 
 ## 🚨 Troubleshooting
 
