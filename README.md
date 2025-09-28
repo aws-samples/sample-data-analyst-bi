@@ -84,12 +84,12 @@ Key configuration files:
 - To ensure optimal SQL generation quality, comprehensive schema metadata must be included in the prompt -  table descriptions and column descriptions in the format specified [metadata sample](data_templates/metadata/)
 - There are two distinct invocation patterns for SQL generation: zeroshot and fewshot. While zeroshot approach serves as a baseline approach,  the fewshot approach significantly improves SQL accuracy by augmenting prompts with contextually relevant examples. The implementation utilizes a Postgres-based vector database that performs semantic similarity search to identify and retrieve the most relevant examples for each user query at inference time. The application supports two ways of creating these examples:
 
-    * Standard NL-SQL Pairs:  
+    - **Standard NL-SQL Pairs**:  
         * Structure: Natural language question paired with its corresponding SQL query
         * Learning mechanism: The foundation model infers semantic mapping between natural language intent and SQL syntax
         * Reference: Example template documentation available in the specified format available [fewshot without explanation](data_templates/fewshot/student_club_fshot_wo_expl_template.xlsx)
 
-    * NL-SQL Pairs augmented with chain of thought and NL variation
+    - **NL-SQL Pairs augmented with chain of thought and NL variation**:
         * Structure: Natural language question, corresponding SQL query, chain-of-thought reasoning steps, and question variation
         * Learning mechanism: The foundation model leverages explicit reasoning paths and linguistic variations to strengthen the association between user intent and SQL generation
         * Reference: Enhanced example template documentation available in the specified format available [fewshot with explanation](data_templates/fewshot/student_club_fshot_w_expl_template.xlsx)
@@ -125,7 +125,7 @@ Key configuration files:
 
 Data Analyst BI offers extensive configuration options to adapt to your specific requirements. Here are the steps to be performed prior to deployment. 
 
-1. Download Code and Setup Local Environment
+- **1.Download Code and Setup Local Environment**
 
 ```bash
 git clone <repository-url>  # Clone repository
@@ -140,7 +140,7 @@ aws configure --profile data-analyst
 
 Once the repository is cloned, the required configurations can be setup in the cdk.json
 
-2. Model Selection and Parameters
+- **2.Model Selection and Parameters**
 
 Choose from various AWS Bedrock models and region to optimize for accuracy or cost:
 cdk.json:
@@ -160,11 +160,11 @@ These configurations can be set in the `streamlit/UI/config.py` file before depl
 - `plot_model_id`: Foundation model from Bedrock for generating visualisation code
 - `expl_model_id`: Foundation model from Bedrock for explaining results from data
 
-3. Model region
+- **3.Model region**
 
 - `model_region`: AWS region for accessing the models
 
-4. Prompting Strategy
+- **4.Prompting Strategy**
 
 ```json
 {
@@ -172,7 +172,7 @@ These configurations can be set in the `streamlit/UI/config.py` file before depl
 }
  ```
 
-5. Database Integration
+- **5.Database Integration**
 
 > [!NOTE]
 > The platform supports three database types. Choose the one that matches your data infrastructure.
@@ -213,7 +213,7 @@ These configurations can be set in the `streamlit/UI/config.py` file before depl
 }
 ```
 
-6. Metadata Enhancement
+- **6.Metadata Enhancement**
 
 - Improve query accuracy with rich metadata
 ```json
@@ -229,7 +229,7 @@ These configurations can be set in the `streamlit/UI/config.py` file before depl
 > For S3-Athena, the metadata S3 bucket must pre-exist before deployment.
 
 
-7. Infrastructure Configuration
+- **7.Infrastructure Configuration**
 
 Depending on your deployment scenario, you may need to provide:
 
