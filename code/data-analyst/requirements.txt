@@ -1,5 +1,5 @@
 pandas==1.5.3
-streamlit==1.33.0
+streamlit==1.54.0
 streamlit-ext
 faiss-cpu==1.7.4
 torch==2.4.0
